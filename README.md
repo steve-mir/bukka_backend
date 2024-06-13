@@ -32,7 +32,7 @@ Bukka Backend is designed to provide robust and secure authentication services f
 
 1. Clone the repository:
     ```bash
-    git clone https://github.com/yourusername/bukka_backend.git
+    git clone https://github.com/frankoe-dev/bukka_backend.git
     cd bukka_backend
     ```
 
@@ -50,8 +50,7 @@ Bukka Backend is designed to provide robust and secure authentication services f
 
 4. Run database migrations:
     ```bash
-    # Assuming you have a migrations tool like golang-migrate installed
-    migrate -database ${DATABASE_URL} -path ./migrations up
+    make migrateup
     ```
 
 5. Start the server:
