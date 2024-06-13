@@ -13,7 +13,7 @@ type Config struct {
 	MigrationUrl             string        `mapstructure:"MIGRATION_URL"`
 	DBDriver                 string        `mapstructure:"DB_DRIVER"`
 	DBSource                 string        `mapstructure:"DB_SOURCE"`
-	HTTPServerAddress        string        `mapstructure:"HTTP_SERVER_ADDRESS"`
+	HTTPAuthServerAddress    string        `mapstructure:"HTTP_AUTH_SERVER_ADDRESS"`
 	RedisAddress             string        `mapstructure:"REDIS_ADDRESS"`
 	RedisUsername            string        `mapstructure:"REDIS_USERNAME"`
 	RedisPwd                 string        `mapstructure:"REDIS_PWD"`

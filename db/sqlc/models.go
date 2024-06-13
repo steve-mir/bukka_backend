@@ -5,31 +5,29 @@
 package sqlc
 
 import (
-	"database/sql"
-
-	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Authentication struct {
-	ID                  uuid.UUID      `json:"id"`
-	Email               string         `json:"email"`
-	Phone               sql.NullString `json:"phone"`
-	Username            sql.NullString `json:"username"`
-	PasswordHash        string         `json:"password_hash"`
-	CreatedAt           sql.NullTime   `json:"created_at"`
-	UpdatedAt           sql.NullTime   `json:"updated_at"`
-	IsSuspended         sql.NullBool   `json:"is_suspended"`
-	IsDeleted           sql.NullBool   `json:"is_deleted"`
-	IsVerified          sql.NullBool   `json:"is_verified"`
-	IsEmailVerified     sql.NullBool   `json:"is_email_verified"`
-	DeletedAt           sql.NullTime   `json:"deleted_at"`
-	VerifiedAt          sql.NullTime   `json:"verified_at"`
-	SuspendedAt         sql.NullTime   `json:"suspended_at"`
-	LoginAttempts       sql.NullInt32  `json:"login_attempts"`
-	PasswordLastChanged sql.NullTime   `json:"password_last_changed"`
-	LockoutDuration     sql.NullInt32  `json:"lockout_duration"`
-	LockoutUntil        sql.NullTime   `json:"lockout_until"`
-	IsMfaEnabled        sql.NullBool   `json:"is_mfa_enabled"`
+	ID                  pgtype.UUID        `json:"id"`
+	Email               string             `json:"email"`
+	Phone               pgtype.Text        `json:"phone"`
+	Username            pgtype.Text        `json:"username"`
+	PasswordHash        string             `json:"password_hash"`
+	CreatedAt           pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt           pgtype.Timestamptz `json:"updated_at"`
+	IsSuspended         pgtype.Bool        `json:"is_suspended"`
+	IsDeleted           pgtype.Bool        `json:"is_deleted"`
+	IsVerified          pgtype.Bool        `json:"is_verified"`
+	IsEmailVerified     pgtype.Bool        `json:"is_email_verified"`
+	DeletedAt           pgtype.Timestamptz `json:"deleted_at"`
+	VerifiedAt          pgtype.Timestamptz `json:"verified_at"`
+	SuspendedAt         pgtype.Timestamptz `json:"suspended_at"`
+	LoginAttempts       pgtype.Int4        `json:"login_attempts"`
+	PasswordLastChanged pgtype.Timestamptz `json:"password_last_changed"`
+	LockoutDuration     pgtype.Int4        `json:"lockout_duration"`
+	LockoutUntil        pgtype.Timestamptz `json:"lockout_until"`
+	IsMfaEnabled        pgtype.Bool        `json:"is_mfa_enabled"`
 }
 
 type Role struct {
@@ -38,15 +36,15 @@ type Role struct {
 }
 
 type User struct {
-	ID        int32          `json:"id"`
-	UserID    uuid.UUID      `json:"user_id"`
-	FirstName sql.NullString `json:"first_name"`
-	LastName  sql.NullString `json:"last_name"`
-	ImageUrl  sql.NullString `json:"image_url"`
+	ID        int32       `json:"id"`
+	UserID    pgtype.UUID `json:"user_id"`
+	FirstName pgtype.Text `json:"first_name"`
+	LastName  pgtype.Text `json:"last_name"`
+	ImageUrl  pgtype.Text `json:"image_url"`
 }
 
 type UserRole struct {
-	ID     int32     `json:"id"`
-	UserID uuid.UUID `json:"user_id"`
-	RoleID int32     `json:"role_id"`
+	ID     int32       `json:"id"`
+	UserID pgtype.UUID `json:"user_id"`
+	RoleID int32       `json:"role_id"`
 }

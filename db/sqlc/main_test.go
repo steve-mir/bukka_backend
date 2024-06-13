@@ -1,16 +1,16 @@
 package sqlc
 
 import (
-	"database/sql"
+	"context"
 	"os"
 	"testing"
 
-	_ "github.com/lib/pq"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog/log"
 	"github.com/steve-mir/bukka_backend/utils"
 )
 
-var testQueries *Queries
+var testStore *Store
 
 func TestMain(m *testing.M) {
 	config, err := utils.LoadConfig("../../")
@@ -18,12 +18,12 @@ func TestMain(m *testing.M) {
 		log.Fatal().Msg("cannot load config " + err.Error())
 	}
 
-	conn, err := sql.Open(config.DBDriver, config.DBSource)
+	connPool, err := pgxpool.New(context.Background(), config.DBSource)
 	if err != nil {
 		log.Fatal().Err(err).Msg("cannot connect to db")
 	}
 
-	testQueries = New(conn)
+	testStore = NewStore(connPool)
 
 	os.Exit(m.Run())
 }

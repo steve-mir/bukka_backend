@@ -59,9 +59,9 @@ sqlc:
 test:
 	go test -v -cover ./...
 
-run:
+server:
 	go run main.go
 
-.PHONY: postgres createdb dropdb migrateup migrateup1 migratedown migratedown1 sqlc test run environ air_init air_run start_redis redis start_ps db_docs db_schema
+.PHONY: postgres createdb dropdb migrateup migrateup1 migratedown migratedown1 sqlc test server environ air_init air_run start_redis redis start_ps db_docs db_schema
 
 # migrate create -ext sql -dir db/migration -seq add_user_session
