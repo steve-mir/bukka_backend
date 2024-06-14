@@ -62,6 +62,9 @@ test:
 server:
 	go run main.go
 
-.PHONY: postgres createdb dropdb migrateup migrateup1 migratedown migratedown1 sqlc test server environ air_init air_run start_redis redis start_ps db_docs db_schema
+mock:
+	mockgen -package mockdb -destination db/mock/store.go  github.com/steve-mir/bukka_backend/db/sqlc Store
+
+.PHONY: postgres createdb dropdb migrateup migrateup1 migratedown migratedown1 sqlc test server environ air_init air_run start_redis redis start_ps db_docs db_schema mock
 
 # migrate create -ext sql -dir db/migration -seq add_user_session

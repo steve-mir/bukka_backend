@@ -5,11 +5,12 @@
 package sqlc
 
 import (
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Authentication struct {
-	ID                  pgtype.UUID        `json:"id"`
+	ID                  uuid.UUID          `json:"id"`
 	Email               string             `json:"email"`
 	Phone               pgtype.Text        `json:"phone"`
 	Username            pgtype.Text        `json:"username"`
@@ -37,14 +38,14 @@ type Role struct {
 
 type User struct {
 	ID        int32       `json:"id"`
-	UserID    pgtype.UUID `json:"user_id"`
+	UserID    uuid.UUID   `json:"user_id"`
 	FirstName pgtype.Text `json:"first_name"`
 	LastName  pgtype.Text `json:"last_name"`
 	ImageUrl  pgtype.Text `json:"image_url"`
 }
 
 type UserRole struct {
-	ID     int32       `json:"id"`
-	UserID pgtype.UUID `json:"user_id"`
-	RoleID int32       `json:"role_id"`
+	ID     int32     `json:"id"`
+	UserID uuid.UUID `json:"user_id"`
+	RoleID int32     `json:"role_id"`
 }

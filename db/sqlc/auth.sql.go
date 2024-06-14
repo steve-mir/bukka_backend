@@ -8,6 +8,7 @@ package sqlc
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -18,7 +19,7 @@ SET is_suspended = true,
 WHERE id = $1
 `
 
-func (q *Queries) BlockUser(ctx context.Context, id pgtype.UUID) error {
+func (q *Queries) BlockUser(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.Exec(ctx, blockUser, id)
 	return err
 }
@@ -43,7 +44,7 @@ RETURNING id, email, phone, username, password_hash, created_at, updated_at, is_
 `
 
 type CreateUserParams struct {
-	ID           pgtype.UUID `json:"id"`
+	ID           uuid.UUID   `json:"id"`
 	Email        string      `json:"email"`
 	Username     pgtype.Text `json:"username"`
 	PasswordHash string      `json:"password_hash"`
@@ -85,7 +86,7 @@ const deleteUserByID = `-- name: DeleteUserByID :exec
 DELETE FROM authentications WHERE id = $1
 `
 
-func (q *Queries) DeleteUserByID(ctx context.Context, id pgtype.UUID) error {
+func (q *Queries) DeleteUserByID(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.Exec(ctx, deleteUserByID, id)
 	return err
 }
@@ -94,15 +95,15 @@ const getUidsFromUsername = `-- name: GetUidsFromUsername :many
 SELECT id FROM authentications WHERE LOWER(username) = ANY($1::string[])
 `
 
-func (q *Queries) GetUidsFromUsername(ctx context.Context, dollar_1 []string) ([]pgtype.UUID, error) {
+func (q *Queries) GetUidsFromUsername(ctx context.Context, dollar_1 []string) ([]uuid.UUID, error) {
 	rows, err := q.db.Query(ctx, getUidsFromUsername, dollar_1)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []pgtype.UUID{}
+	items := []uuid.UUID{}
 	for rows.Next() {
-		var id pgtype.UUID
+		var id uuid.UUID
 		if err := rows.Scan(&id); err != nil {
 			return nil, err
 		}
@@ -123,7 +124,7 @@ WHERE authentications.username = $1 OR authentications.phone = $1 OR authenticat
 `
 
 type GetUserAndRoleByIdentifierRow struct {
-	ID                  pgtype.UUID        `json:"id"`
+	ID                  uuid.UUID          `json:"id"`
 	Email               string             `json:"email"`
 	Phone               pgtype.Text        `json:"phone"`
 	Username            pgtype.Text        `json:"username"`
@@ -187,7 +188,7 @@ const getUserByID = `-- name: GetUserByID :one
 SELECT id, email, phone, username, password_hash, created_at, updated_at, is_suspended, is_deleted, is_verified, is_email_verified, deleted_at, verified_at, suspended_at, login_attempts, password_last_changed, lockout_duration, lockout_until, is_mfa_enabled FROM authentications WHERE id = $1 LIMIT 1
 `
 
-func (q *Queries) GetUserByID(ctx context.Context, id pgtype.UUID) (Authentication, error) {
+func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (Authentication, error) {
 	row := q.db.QueryRow(ctx, getUserByID, id)
 	var i Authentication
 	err := row.Scan(
@@ -251,9 +252,9 @@ const getUserByUsername = `-- name: GetUserByUsername :one
 SELECT id FROM authentications WHERE username = $1
 `
 
-func (q *Queries) GetUserByUsername(ctx context.Context, username pgtype.Text) (pgtype.UUID, error) {
+func (q *Queries) GetUserByUsername(ctx context.Context, username pgtype.Text) (uuid.UUID, error) {
 	row := q.db.QueryRow(ctx, getUserByUsername, username)
-	var id pgtype.UUID
+	var id uuid.UUID
 	err := row.Scan(&id)
 	return id, err
 }
@@ -262,15 +263,15 @@ const getUserIDsFromUsernames = `-- name: GetUserIDsFromUsernames :many
 SELECT id FROM authentications WHERE username = ANY($1)
 `
 
-func (q *Queries) GetUserIDsFromUsernames(ctx context.Context, username pgtype.Text) ([]pgtype.UUID, error) {
+func (q *Queries) GetUserIDsFromUsernames(ctx context.Context, username pgtype.Text) ([]uuid.UUID, error) {
 	rows, err := q.db.Query(ctx, getUserIDsFromUsernames, username)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []pgtype.UUID{}
+	items := []uuid.UUID{}
 	for rows.Next() {
-		var id pgtype.UUID
+		var id uuid.UUID
 		if err := rows.Scan(&id); err != nil {
 			return nil, err
 		}
@@ -325,7 +326,7 @@ type UpdateUserParams struct {
 	PasswordLastChanged pgtype.Timestamptz `json:"password_last_changed"`
 	IsVerified          pgtype.Bool        `json:"is_verified"`
 	IsMfaEnabled        pgtype.Bool        `json:"is_mfa_enabled"`
-	ID                  pgtype.UUID        `json:"id"`
+	ID                  uuid.UUID          `json:"id"`
 }
 
 func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (Authentication, error) {
@@ -381,8 +382,8 @@ WHERE id = $1 OR email = $1
 `
 
 type UpdateUserPasswordParams struct {
-	ID           pgtype.UUID `json:"id"`
-	PasswordHash string      `json:"password_hash"`
+	ID           uuid.UUID `json:"id"`
+	PasswordHash string    `json:"password_hash"`
 }
 
 func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error {
