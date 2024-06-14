@@ -10,8 +10,10 @@ import (
 
 type registerReq struct {
 	FullName string `json:"full_name" binding:"required"`
-	Email    string `json:"email" binding:"required"`
-	Password string `json:"password" binding:"required"`
+	Username string `json:"username" binding:"required,usernameValidator"`
+	Email    string `json:"email" binding:"required,emailValidator"`
+	Phone    string `json:"phone" binding:"phoneValidator"`
+	Password string `json:"password" binding:"required,passwordValidator"`
 }
 
 func (s *Server) register(ctx *gin.Context) {

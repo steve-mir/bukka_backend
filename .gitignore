@@ -21,4 +21,9 @@
 go.work
 go.work.sum
 
+# mac os
 .DS_STORE
+
+# air files
+.air.toml
+tmp/main
