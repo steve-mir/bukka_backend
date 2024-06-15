@@ -20,6 +20,7 @@ type Querier interface {
 	// Create a new session
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (Authentication, error)
+	CreateUserDeleteRequest(ctx context.Context, arg CreateUserDeleteRequestParams) error
 	// Create a new user login
 	CreateUserLogin(ctx context.Context, arg CreateUserLoginParams) (UserLogin, error)
 	CreateUserProfile(ctx context.Context, arg CreateUserProfileParams) error
@@ -39,11 +40,13 @@ type Querier interface {
 	GetUserByID(ctx context.Context, id uuid.UUID) (Authentication, error)
 	GetUserByIdentifier(ctx context.Context, email string) (Authentication, error)
 	GetUserByUsername(ctx context.Context, username pgtype.Text) (uuid.UUID, error)
+	GetUserFromDeleteReqByToken(ctx context.Context, recoveryToken string) (AccountRecoveryRequest, error)
 	GetUserIDsFromUsernames(ctx context.Context, username pgtype.Text) ([]uuid.UUID, error)
 	// Get user logins by user ID
 	GetUserLoginsByUserID(ctx context.Context, userID uuid.UUID) ([]UserLogin, error)
 	GetUserProfile(ctx context.Context, username pgtype.Text) (GetUserProfileRow, error)
 	GetUserProfileByUID(ctx context.Context, userID uuid.UUID) (User, error)
+	MarkDeleteAsUsedByToken(ctx context.Context, recoveryToken string) error
 	RevokeSessionById(ctx context.Context, userID uuid.UUID) error
 	RotateSessionTokens(ctx context.Context, arg RotateSessionTokensParams) error
 	UpdateEmailVerificationRequest(ctx context.Context, arg UpdateEmailVerificationRequestParams) (EmailVerificationRequest, error)

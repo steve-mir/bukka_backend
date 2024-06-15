@@ -4,6 +4,7 @@
         "Msgf",
         "pgtype",
         "pgxpool",
+        "Timestamptz",
         "zerolog"
     ]
 }

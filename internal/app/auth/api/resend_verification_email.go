@@ -1,7 +1,6 @@
 package api
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -12,7 +11,6 @@ import (
 
 func (s *Server) resendVerificationEmail(ctx *gin.Context) {
 	authPayload := ctx.MustGet(middlewares.AuthorizationPayloadKey).(*token.Payload)
-	log.Println(authPayload)
 	err := services.ReSendVerificationEmail(s.store, ctx, s.taskDistributor, authPayload.Subject, authPayload.Email)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))

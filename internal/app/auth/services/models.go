@@ -17,6 +17,14 @@ type VerifyEmailReq struct {
 	Token string `json:"token" binding:"required"` // TODO: Add verification to allow only digits within the appropriate length
 }
 
+type DeleteAccountReq struct {
+	Password string `json:"password" binding:"required,passwordValidator"`
+}
+
+type AccountRecoveryReq struct {
+	Email string `json:"email" binding:"required,emailValidator"`
+}
+
 // Responses
 type AuthTokenResp struct {
 	AccessToken           string    `json:"access_token"`
@@ -42,4 +50,8 @@ type UserAuthRes struct {
 type VerifyEmailRes struct {
 	Msg      string `json:"msg"`
 	Verified bool   `json:"verified"`
+}
+
+type GenericRes struct {
+	Msg string `json:"msg"`
 }

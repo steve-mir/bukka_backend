@@ -48,6 +48,10 @@ func (server *Server) setupRouter() {
 	authRoutes := router.Group("/").Use(middlewares.AuthMiddlerWare(server.config))
 	authRoutes.GET(baseUrl+"resend_verification", server.resendVerificationEmail)
 
+	authRoutes.DELETE(baseUrl+"delete_account", server.deleteAccount)
+	router.POST(baseUrl+"request_account_recovery", server.requestAccountRecovery)
+	router.GET(baseUrl+"recover_account", server.completeAccountRecovery)
+
 	// router.POST(baseUrl+"change_password", server.register)
 	// router.POST(baseUrl+"request_reset_password", server.register)
 	// router.POST(baseUrl+"reset_password", server.register)
@@ -57,9 +61,6 @@ func (server *Server) setupRouter() {
 	// router.POST(baseUrl+"confirm_change_phone", server.register)
 	// router.POST(baseUrl+"change_username", server.register)
 	// router.PATCH(baseUrl+"update_user", server.register)
-	// router.POST(baseUrl+"delete_account", server.register)
-	// router.POST(baseUrl+"request_account_recovery", server.register)
-	// router.POST(baseUrl+"recover_account", server.register)
 	// router.POST(baseUrl+"register_sso", server.register)
 	// router.POST(baseUrl+"login_sso", server.register)
 	// router.POST(baseUrl+"register_mfa", server.register)

@@ -2,6 +2,7 @@ package utils
 
 import (
 	"crypto/rand"
+	"encoding/base64"
 	"math/big"
 	"net/netip"
 )
@@ -37,4 +38,16 @@ func GenerateSecureRandomNumber(max int64) (int64, error) {
 		return 0, err
 	}
 	return nBig.Int64(), nil
+}
+
+func GenerateUniqueToken(len int) (string, error) {
+	// Generate a cryptographically secure random value
+	randomBytes := make([]byte, len)
+	_, err := rand.Read(randomBytes)
+	if err != nil {
+		return "", err
+	}
+	token := base64.URLEncoding.EncodeToString(randomBytes)
+
+	return token, nil
 }

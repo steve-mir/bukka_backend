@@ -12,6 +12,17 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type AccountRecoveryRequest struct {
+	ID            int32              `json:"id"`
+	UserID        uuid.UUID          `json:"user_id"`
+	Email         string             `json:"email"`
+	Used          pgtype.Bool        `json:"used"`
+	RecoveryToken string             `json:"recovery_token"`
+	RequestedAt   pgtype.Timestamptz `json:"requested_at"`
+	ExpiresAt     time.Time          `json:"expires_at"`
+	CompletedAt   pgtype.Timestamptz `json:"completed_at"`
+}
+
 type Authentication struct {
 	ID                  uuid.UUID          `json:"id"`
 	Email               string             `json:"email"`
@@ -44,6 +55,16 @@ type EmailVerificationRequest struct {
 	ExpiresAt  time.Time          `json:"expires_at"`
 }
 
+type PasswordResetRequest struct {
+	ID        int32              `json:"id"`
+	UserID    uuid.UUID          `json:"user_id"`
+	Email     string             `json:"email"`
+	Token     string             `json:"token"`
+	Used      pgtype.Bool        `json:"used"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	ExpiresAt time.Time          `json:"expires_at"`
+}
+
 type Role struct {
 	ID   int32  `json:"id"`
 	Name string `json:"name"`
@@ -62,6 +83,27 @@ type Session struct {
 	UserAgent       string             `json:"user_agent"`
 	IpAddress       netip.Addr         `json:"ip_address"`
 	FcmToken        pgtype.Text        `json:"fcm_token"`
+}
+
+type TwoFactorBackupCode struct {
+	ID     int32       `json:"id"`
+	UserID uuid.UUID   `json:"user_id"`
+	Code   string      `json:"code"`
+	Used   pgtype.Bool `json:"used"`
+}
+
+type TwoFactorRevocation struct {
+	ID               int32              `json:"id"`
+	UserID           uuid.UUID          `json:"user_id"`
+	RevokedAt        pgtype.Timestamptz `json:"revoked_at"`
+	RevocationReason pgtype.Text        `json:"revocation_reason"`
+}
+
+type TwoFactorSecret struct {
+	ID        int32       `json:"id"`
+	UserID    uuid.UUID   `json:"user_id"`
+	SecretKey string      `json:"secret_key"`
+	IsActive  pgtype.Bool `json:"is_active"`
 }
 
 type User struct {
