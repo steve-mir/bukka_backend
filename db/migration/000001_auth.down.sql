@@ -14,3 +14,5 @@ DROP INDEX IF EXISTS "users_email_username_created_at_updated_at";
 DROP TABLE IF EXISTS "roles";
 DROP TABLE IF EXISTS "user_roles";
 DROP TABLE IF EXISTS "authentications";
+
+-- TODO: DROP users table and its constraints

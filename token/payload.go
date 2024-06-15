@@ -25,8 +25,6 @@ var (
 // User agent - The user agent string of the client. Can be used to identify clients.
 
 type PayloadData struct {
-	// RefreshID       string      `json:"refresh_token"`
-	// IsRefresh       bool        `json:"is_refresh"`
 	Role          int8      `json:"role"`
 	Subject       uuid.UUID `json:"sub"` // subject: the user ID
 	Username      string    `json:"username"`

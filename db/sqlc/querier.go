@@ -15,13 +15,19 @@ type Querier interface {
 	BlockUser(ctx context.Context, id uuid.UUID) error
 	CheckUsername(ctx context.Context, lower string) (int64, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (Authentication, error)
+	CreateUserProfile(ctx context.Context, arg CreateUserProfileParams) error
+	CreateUserRole(ctx context.Context, arg CreateUserRoleParams) (UserRole, error)
 	DeleteUserByID(ctx context.Context, id uuid.UUID) error
+	DeleteUserProfileByID(ctx context.Context, userID uuid.UUID) error
 	GetUidsFromUsername(ctx context.Context, dollar_1 []string) ([]uuid.UUID, error)
 	GetUserAndRoleByIdentifier(ctx context.Context, username pgtype.Text) (GetUserAndRoleByIdentifierRow, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (Authentication, error)
 	GetUserByIdentifier(ctx context.Context, email string) (Authentication, error)
 	GetUserByUsername(ctx context.Context, username pgtype.Text) (uuid.UUID, error)
 	GetUserIDsFromUsernames(ctx context.Context, username pgtype.Text) ([]uuid.UUID, error)
+	GetUserProfile(ctx context.Context, username pgtype.Text) (GetUserProfileRow, error)
+	GetUserProfileByUID(ctx context.Context, userID uuid.UUID) (User, error)
+	UpdateImgUserProfile(ctx context.Context, arg UpdateImgUserProfileParams) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (Authentication, error)
 	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error
 }

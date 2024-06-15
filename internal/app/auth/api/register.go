@@ -2,38 +2,97 @@ package api
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
 	"github.com/steve-mir/bukka_backend/db/sqlc"
+	"github.com/steve-mir/bukka_backend/internal/app/auth/services"
 )
 
-type registerReq struct {
-	FullName string `json:"full_name" binding:"required"`
-	Username string `json:"username" binding:"required,usernameValidator"`
-	Email    string `json:"email" binding:"required,emailValidator"`
-	Phone    string `json:"phone" binding:"phoneValidator"`
-	Password string `json:"password" binding:"required,passwordValidator"`
-}
-
 func (s *Server) register(ctx *gin.Context) {
-	var req registerReq
+	var req services.RegisterReq
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
 
-	// TODO: Call register service
-	arg := sqlc.CreateUserParams{
-		Email:        req.Email,
-		PasswordHash: req.Password,
-		Username:     pgtype.Text{String: "", Valid: true},
-	}
-	user, err := s.store.CreateUser(ctx, arg)
+	clientIP := ctx.ClientIP()
+	agent := ctx.Request.UserAgent()
+
+	// Begin transaction
+	tx, err := s.connPool.Begin(ctx)
+
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+	defer tx.Rollback(ctx)
+
+	qtx := sqlc.New(tx)
+
+	// Check db if user exists
+	if err := services.CheckUserExists(ctx, qtx, req.Email, req.Username); err != nil {
+		// return nil, status.Errorf(codes.AlreadyExists, err.Error())
+		log.Err(err).Msg("Error2")
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, user)
+	// hash pwd and generate uuid
+	hashedPwd, uid, err := services.PrepareUserData(req.Password)
+	if err != nil {
+		// return nil, status.Errorf(codes.Internal, err.Error())
+		log.Err(err).Msg("Error3")
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	sqlcUser, err := services.CreateUserConcurrent(ctx, qtx /*tx,*/, uid, req.Email, req.Username, hashedPwd)
+	if err != nil {
+		// return nil, status.Errorf(codes.Internal, "error while creating user with email and password %s", err)
+		log.Err(err).Msg("Error4")
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	// Run concurrent operations
+	accessToken, accessExp, err := services.RunConcurrentUserCreationTasks(ctx, qtx, tx, s.config, s.taskDistributor, req, uid, clientIP, agent)
+	if err != nil {
+		// return nil, status.Errorf(codes.Internal, "error creating details: %s", err.Error())
+		log.Err(err).Msg("Error5")
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	// Only commit the transaction if all previous steps were successful
+	if err := tx.Commit(ctx); err != nil {
+		// return nil, status.Errorf(codes.Internal, "an unexpected error occurred during transaction commit: %s", err)
+		log.Err(err).Msg("Error6")
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, UserAuthRes{
+		Uid:                  sqlcUser.ID,
+		Username:             sqlcUser.Username.String,
+		Email:                sqlcUser.Email,
+		IsEmailVerified:      sqlcUser.IsEmailVerified.Bool,
+		CreatedAt:            sqlcUser.CreatedAt.Time,
+		AccessToken:          accessToken,
+		AccessTokenExpiresAt: accessExp,
+	})
+}
+
+type UserAuthRes struct {
+	Uid                   uuid.UUID `json:"uid"`
+	IsEmailVerified       bool      `json:"is_email_verified"`
+	Username              string    `json:"username"`
+	Email                 string    `json:"email"`
+	CreatedAt             time.Time `json:"created_at"`
+	AccessToken           string    `json:"access_token"`
+	AccessTokenExpiresAt  time.Time `json:"access_token_expires_at"`
+	RefreshToken          string    `json:"refresh_token"`
+	RefreshTokenExpiresAt time.Time `json:"refresh_token_expires_at"`
 }
