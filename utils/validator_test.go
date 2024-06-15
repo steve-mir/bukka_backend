@@ -68,7 +68,7 @@ var phoneTests = []struct {
 
 func TestValidateUsername(t *testing.T) {
 	for _, test := range usernameTests {
-		result := validateUsername(test.username)
+		result := ValidateUsername(test.username)
 		if result != test.expected {
 			t.Errorf("validateUsername(%q) = %v; want %v", test.username, result, test.expected)
 		}
@@ -86,7 +86,7 @@ func TestValidatePassword(t *testing.T) {
 
 func TestValidateEmail(t *testing.T) {
 	for _, test := range emailTests {
-		result := validateEmail(test.email)
+		result := ValidateEmail(test.email)
 		if result != test.expected {
 			t.Errorf("validateEmail(%q) = %v; want %v", test.email, result, test.expected)
 		}
@@ -95,7 +95,7 @@ func TestValidateEmail(t *testing.T) {
 
 func TestValidatePhone(t *testing.T) {
 	for _, test := range phoneTests {
-		result := validatePhone(test.phone)
+		result := ValidatePhone(test.phone)
 		if result != test.expected {
 			t.Errorf("validatePhone(%q) = %v; want %v", test.phone, result, test.expected)
 		}

@@ -5,6 +5,9 @@
 package sqlc
 
 import (
+	"net/netip"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
@@ -31,9 +34,34 @@ type Authentication struct {
 	IsMfaEnabled        pgtype.Bool        `json:"is_mfa_enabled"`
 }
 
+type EmailVerificationRequest struct {
+	ID         int64              `json:"id"`
+	UserID     uuid.UUID          `json:"user_id"`
+	Email      string             `json:"email"`
+	Token      string             `json:"token"`
+	IsVerified pgtype.Bool        `json:"is_verified"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+	ExpiresAt  time.Time          `json:"expires_at"`
+}
+
 type Role struct {
 	ID   int32  `json:"id"`
 	Name string `json:"name"`
+}
+
+type Session struct {
+	ID              uuid.UUID          `json:"id"`
+	UserID          uuid.UUID          `json:"user_id"`
+	RefreshToken    string             `json:"refresh_token"`
+	RefreshTokenExp time.Time          `json:"refresh_token_exp"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+	InvalidatedAt   pgtype.Timestamptz `json:"invalidated_at"`
+	LastActiveAt    pgtype.Timestamptz `json:"last_active_at"`
+	BlockedAt       pgtype.Timestamptz `json:"blocked_at"`
+	UserAgent       string             `json:"user_agent"`
+	IpAddress       netip.Addr         `json:"ip_address"`
+	FcmToken        pgtype.Text        `json:"fcm_token"`
 }
 
 type User struct {
@@ -42,6 +70,14 @@ type User struct {
 	FirstName pgtype.Text `json:"first_name"`
 	LastName  pgtype.Text `json:"last_name"`
 	ImageUrl  pgtype.Text `json:"image_url"`
+}
+
+type UserLogin struct {
+	ID        int32              `json:"id"`
+	UserID    uuid.UUID          `json:"user_id"`
+	LoginAt   pgtype.Timestamptz `json:"login_at"`
+	IpAddress *netip.Addr        `json:"ip_address"`
+	UserAgent pgtype.Text        `json:"user_agent"`
 }
 
 type UserRole struct {

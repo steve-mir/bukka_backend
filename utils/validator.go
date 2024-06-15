@@ -21,11 +21,12 @@ var (
 	cleanNumberRegex                        = regexp.MustCompile(`[\s-().]`)
 	hasTenDigitsRegex                       = regexp.MustCompile(`^\d{10}$`)
 	isValidPhoneRegex                       = regexp.MustCompile(`^\+?1?\d{10}$`)
+	isValidEmailRegex                       = regexp.MustCompile(`^[^\s@]+@[^\s@]+\.[^\s@]+$`)
 )
 
 const (
-	usernameMinLen = 4
-	usernameMaxLen = 30
+	UsernameMinLen = 4
+	UsernameMaxLen = 30
 	passwordMinLen = 8
 	passwordMaxLen = 64
 	fullNameMinLen = 3
@@ -36,14 +37,14 @@ const (
 
 var ValidUsername validator.Func = func(fl validator.FieldLevel) bool {
 	if username, ok := fl.Field().Interface().(string); ok {
-		return validateUsername(username)
+		return ValidateUsername(username)
 	}
 	return false
 }
 
 var ValidEmail validator.Func = func(fl validator.FieldLevel) bool {
 	if email, ok := fl.Field().Interface().(string); ok {
-		return validateEmail(email)
+		return ValidateEmail(email)
 	}
 	return false
 }
@@ -57,7 +58,7 @@ var ValidPassword validator.Func = func(fl validator.FieldLevel) bool {
 
 var ValidPhone validator.Func = func(fl validator.FieldLevel) bool {
 	if phone, ok := fl.Field().Interface().(string); ok {
-		return validatePhone(phone)
+		return ValidatePhone(phone)
 	}
 	return false
 }
@@ -69,8 +70,8 @@ func ValidateString(value string, min int, max int) error {
 	return nil
 }
 
-func validateUsername(username string) bool {
-	if len(username) < usernameMinLen || len(username) > usernameMaxLen {
+func ValidateUsername(username string) bool {
+	if len(username) < UsernameMinLen || len(username) > UsernameMaxLen {
 		return false
 	}
 	if !startsWithLetterRegex.MatchString(username) {
@@ -88,7 +89,7 @@ func validateUsername(username string) bool {
 	return true
 }
 
-func validatePhone(phoneNumber string) bool {
+func ValidatePhone(phoneNumber string) bool {
 	cleanNumber := cleanNumberRegex.ReplaceAllString(phoneNumber, "")
 	return hasTenDigitsRegex.MatchString(cleanNumber)
 }
@@ -119,10 +120,18 @@ func validatePassword(password string) bool {
 	return true
 }
 
-func validateEmail(value string) bool {
+func ValidateEmail(value string) bool {
 	if _, err := mail.ParseAddress(value); err != nil {
 		log.Error().Msgf("invalid email: %s", err)
 		return false
 	}
 	return true
+}
+
+func IsEmailFormat(value string) bool {
+	return isValidEmailRegex.MatchString(value)
+}
+
+func IsPhoneFormat(value string) bool {
+	return isValidPhoneRegex.MatchString(value)
 }

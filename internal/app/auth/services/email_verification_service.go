@@ -43,7 +43,6 @@ func SendVerificationEmail(qtx *sqlc.Queries, ctx context.Context, td worker.Tas
 			errChan <- errors.New("failed to send verification email")
 		}
 	}()
-
 	return nil
 
 }

@@ -3,7 +3,22 @@ package utils
 import (
 	"crypto/rand"
 	"math/big"
+	"net/netip"
 )
+
+func GetIpAddr(clientIP string) (*netip.Addr, error) {
+	if clientIP == "::1" {
+		clientIP = "127.0.0.1"
+	}
+
+	addr, err := netip.ParseAddr(clientIP)
+	if err != nil {
+		// Handle the error if the IP address string is not valid.
+		return nil, err
+	}
+
+	return &addr, nil
+}
 
 func GetKeyForToken(config Config, isRefresh bool) string {
 	var key string

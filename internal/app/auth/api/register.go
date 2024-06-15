@@ -2,10 +2,8 @@ package api
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/steve-mir/bukka_backend/db/sqlc"
 	"github.com/steve-mir/bukka_backend/internal/app/auth/services"
@@ -74,7 +72,7 @@ func (s *Server) register(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, UserAuthRes{
+	ctx.JSON(http.StatusOK, services.UserAuthRes{
 		Uid:                  sqlcUser.ID,
 		Username:             sqlcUser.Username.String,
 		Email:                sqlcUser.Email,
@@ -83,16 +81,4 @@ func (s *Server) register(ctx *gin.Context) {
 		AccessToken:          accessToken,
 		AccessTokenExpiresAt: accessExp,
 	})
-}
-
-type UserAuthRes struct {
-	Uid                   uuid.UUID `json:"uid"`
-	IsEmailVerified       bool      `json:"is_email_verified"`
-	Username              string    `json:"username"`
-	Email                 string    `json:"email"`
-	CreatedAt             time.Time `json:"created_at"`
-	AccessToken           string    `json:"access_token"`
-	AccessTokenExpiresAt  time.Time `json:"access_token_expires_at"`
-	RefreshToken          string    `json:"refresh_token"`
-	RefreshTokenExpiresAt time.Time `json:"refresh_token_expires_at"`
 }

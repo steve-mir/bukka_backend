@@ -12,23 +12,41 @@ import (
 )
 
 type Querier interface {
+	BlockAllUserSession(ctx context.Context, userID uuid.UUID) error
 	BlockUser(ctx context.Context, id uuid.UUID) error
 	CheckUsername(ctx context.Context, lower string) (int64, error)
+	// Create a new session
+	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (Authentication, error)
+	// Create a new user login
+	CreateUserLogin(ctx context.Context, arg CreateUserLoginParams) (UserLogin, error)
 	CreateUserProfile(ctx context.Context, arg CreateUserProfileParams) error
 	CreateUserRole(ctx context.Context, arg CreateUserRoleParams) (UserRole, error)
+	DeleteSession(ctx context.Context, id uuid.UUID) error
 	DeleteUserByID(ctx context.Context, id uuid.UUID) error
+	// Delete a user login
+	DeleteUserLogin(ctx context.Context, id int32) error
 	DeleteUserProfileByID(ctx context.Context, userID uuid.UUID) error
+	GetSessionAndUserByRefreshToken(ctx context.Context, refreshToken string) (GetSessionAndUserByRefreshTokenRow, error)
+	GetSessionsByID(ctx context.Context, id uuid.UUID) (Session, error)
+	GetSessionsByRefreshToken(ctx context.Context, refreshToken string) (Session, error)
+	GetSessionsByUserID(ctx context.Context, userID uuid.UUID) ([]Session, error)
 	GetUidsFromUsername(ctx context.Context, dollar_1 []string) ([]uuid.UUID, error)
 	GetUserAndRoleByIdentifier(ctx context.Context, username pgtype.Text) (GetUserAndRoleByIdentifierRow, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (Authentication, error)
 	GetUserByIdentifier(ctx context.Context, email string) (Authentication, error)
 	GetUserByUsername(ctx context.Context, username pgtype.Text) (uuid.UUID, error)
 	GetUserIDsFromUsernames(ctx context.Context, username pgtype.Text) ([]uuid.UUID, error)
+	// Get user logins by user ID
+	GetUserLoginsByUserID(ctx context.Context, userID uuid.UUID) ([]UserLogin, error)
 	GetUserProfile(ctx context.Context, username pgtype.Text) (GetUserProfileRow, error)
 	GetUserProfileByUID(ctx context.Context, userID uuid.UUID) (User, error)
+	RevokeSessionById(ctx context.Context, userID uuid.UUID) error
+	RotateSessionTokens(ctx context.Context, arg RotateSessionTokensParams) error
 	UpdateImgUserProfile(ctx context.Context, arg UpdateImgUserProfileParams) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (Authentication, error)
+	// Update a user login
+	UpdateUserLogin(ctx context.Context, arg UpdateUserLoginParams) (UserLogin, error)
 	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error
 }
 

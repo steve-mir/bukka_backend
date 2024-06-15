@@ -22,6 +22,7 @@ type RegisterReq struct {
 	Email    string `json:"email" binding:"required,emailValidator"`
 	Phone    string `json:"phone" binding:"phoneValidator"`
 	Password string `json:"password" binding:"required,passwordValidator"`
+	FcmToken string `json:"fcm_token"`
 }
 
 type UserResult struct {
@@ -156,11 +157,6 @@ func RunConcurrentUserCreationTasks(ctx context.Context, qtx *sqlc.Queries, tx p
 		tx.Rollback(ctx)
 		return "", time.Time{}, errors.New("unable to resend email " + emailResult.err.Error())
 	}
-
-	// // Commit transaction if all tasks are successful
-	// if err := tx.Commit(ctx); err != nil {
-	// 	return "", time.Time{}, fmt.Errorf("failed to commit transaction: %v", err)
-	// }
 
 	return accessToken, accessPayload.Expires, nil
 }

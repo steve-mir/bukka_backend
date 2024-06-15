@@ -34,9 +34,10 @@ func NewServer(store db.Store, connPool *pgxpool.Pool, config utils.Config, td w
 	}
 
 	router.POST(baseUrl+"register", server.register)
-	// router.POST(baseUrl+"login", server.register)
-	// router.POST(baseUrl+"resend_verification", server.register)
+	router.POST(baseUrl+"login", server.login)
 	// router.POST(baseUrl+"rotate_token", server.register)
+	// router.POST(baseUrl+"resend_verification", server.register)
+	// router.POST(baseUrl+"verify_email", server.register)
 	// router.POST(baseUrl+"change_password", server.register)
 	// router.POST(baseUrl+"request_reset_password", server.register)
 	// router.POST(baseUrl+"reset_password", server.register)
@@ -46,7 +47,6 @@ func NewServer(store db.Store, connPool *pgxpool.Pool, config utils.Config, td w
 	// router.POST(baseUrl+"confirm_change_phone", server.register)
 	// router.POST(baseUrl+"change_username", server.register)
 	// router.PATCH(baseUrl+"update_user", server.register)
-	// router.POST(baseUrl+"verify_email", server.register)
 	// router.POST(baseUrl+"delete_account", server.register)
 	// router.POST(baseUrl+"request_account_recovery", server.register)
 	// router.POST(baseUrl+"recover_account", server.register)
