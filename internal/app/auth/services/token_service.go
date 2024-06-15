@@ -1,9 +1,12 @@
 package services
 
 import (
+	"context"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/steve-mir/bukka_backend/db/sqlc"
 	"github.com/steve-mir/bukka_backend/token"
 	"github.com/steve-mir/bukka_backend/utils"
 )
@@ -96,4 +99,69 @@ func VerifyToken(tokenMaker token.Maker, token string) (*token.Payload, error) {
 
 	return payload, nil
 
+}
+
+func (t *TokenService) RotateToken(email, username, phone string, mfaPassed, isEmailVerified bool, userId uuid.UUID, role int8, sessionID uuid.UUID, clientIP, userAgent string,
+	config utils.Config, store sqlc.Store,
+) (AuthToken, error) {
+	// Create a channel to receive token creation results.
+	type tokenResult struct {
+		token   string
+		payload *token.Payload // Assuming TokenPayload is the type of accessPayload and refreshPayload
+		err     error
+	}
+
+	// Define a WaitGroup to wait for goroutines to finish.
+	var wg sync.WaitGroup
+
+	// Start goroutine to create refresh token.
+	refreshTokenCh := make(chan tokenResult, 1)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		refreshToken, refreshPayload, err := t.CreateRefreshToken(userId, sessionID, clientIP, userAgent)
+		refreshTokenCh <- tokenResult{refreshToken, refreshPayload, err}
+	}()
+
+	// Start goroutine to create access token.
+	accessTokenCh := make(chan tokenResult, 1)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		accessToken, accessPayload, err := t.CreateAccessToken(email, username, phone, mfaPassed, isEmailVerified, userId, role, clientIP, userAgent)
+		accessTokenCh <- tokenResult{accessToken, accessPayload, err}
+	}()
+
+	// Wait for the token creation goroutines to finish.
+	wg.Wait()
+	close(refreshTokenCh)
+	close(accessTokenCh)
+
+	// Collect the results.
+	refreshResult := <-refreshTokenCh
+	if refreshResult.err != nil {
+		return AuthToken{}, refreshResult.err
+	}
+
+	accessResult := <-accessTokenCh
+	if accessResult.err != nil {
+		return AuthToken{}, accessResult.err
+	}
+
+	// Rotate session tokens in the database.
+	err := store.RotateSessionTokens(context.Background(), sqlc.RotateSessionTokensParams{
+		ID:              sessionID,
+		RefreshToken:    refreshResult.token,
+		RefreshTokenExp: refreshResult.payload.Expires,
+	})
+	if err != nil {
+		return AuthToken{}, err
+	}
+
+	return AuthToken{
+		AccessToken:           accessResult.token,
+		RefreshToken:          refreshResult.token,
+		AccessTokenExpiresAt:  accessResult.payload.Expires,
+		RefreshTokenExpiresAt: refreshResult.payload.Expires,
+	}, nil
 }

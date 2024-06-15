@@ -35,7 +35,7 @@ func NewServer(store db.Store, connPool *pgxpool.Pool, config utils.Config, td w
 
 	router.POST(baseUrl+"register", server.register)
 	router.POST(baseUrl+"login", server.login)
-	// router.POST(baseUrl+"rotate_token", server.register)
+	router.POST(baseUrl+"rotate_token", server.rotateToken)
 	// router.POST(baseUrl+"resend_verification", server.register)
 	// router.POST(baseUrl+"verify_email", server.register)
 	// router.POST(baseUrl+"change_password", server.register)

@@ -73,12 +73,14 @@ func (s *Server) register(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, services.UserAuthRes{
-		Uid:                  sqlcUser.ID,
-		Username:             sqlcUser.Username.String,
-		Email:                sqlcUser.Email,
-		IsEmailVerified:      sqlcUser.IsEmailVerified.Bool,
-		CreatedAt:            sqlcUser.CreatedAt.Time,
-		AccessToken:          accessToken,
-		AccessTokenExpiresAt: accessExp,
+		Uid:             sqlcUser.ID,
+		Username:        sqlcUser.Username.String,
+		Email:           sqlcUser.Email,
+		IsEmailVerified: sqlcUser.IsEmailVerified.Bool,
+		CreatedAt:       sqlcUser.CreatedAt.Time,
+		AuthTokenResp: services.AuthTokenResp{
+			AccessToken:          accessToken,
+			AccessTokenExpiresAt: accessExp,
+		},
 	})
 }

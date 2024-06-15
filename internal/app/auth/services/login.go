@@ -99,20 +99,22 @@ func LogUserIn(req LoginReq, store sqlc.Store, ctx context.Context, config utils
 
 	// return resp
 	return UserAuthRes{
-		Uid:                   user.ID,
-		IsEmailVerified:       user.IsEmailVerified.Bool,
-		Username:              user.Username.String,
-		Email:                 user.Email,
-		IsDeleted:             user.IsDeleted.Bool,
-		IsSuspended:           user.IsSuspended.Bool,
-		IsMfaEnabled:          user.IsMfaEnabled.Bool,
-		ImageUrl:              user.ImageUrl.String,
-		CreatedAt:             user.CreatedAt.Time,
-		PasswordChangedAt:     user.PasswordLastChanged.Time,
-		AccessToken:           accessToken,
-		AccessTokenExpiresAt:  accessPayload.Expires,
-		RefreshToken:          refreshToken,
-		RefreshTokenExpiresAt: refreshPayload.Expires,
+		Uid:               user.ID,
+		IsEmailVerified:   user.IsEmailVerified.Bool,
+		Username:          user.Username.String,
+		Email:             user.Email,
+		IsDeleted:         user.IsDeleted.Bool,
+		IsSuspended:       user.IsSuspended.Bool,
+		IsMfaEnabled:      user.IsMfaEnabled.Bool,
+		ImageUrl:          user.ImageUrl.String,
+		CreatedAt:         user.CreatedAt.Time,
+		PasswordChangedAt: user.PasswordLastChanged.Time,
+		AuthTokenResp: AuthTokenResp{
+			AccessToken:           accessToken,
+			AccessTokenExpiresAt:  accessPayload.Expires,
+			RefreshToken:          refreshToken,
+			RefreshTokenExpiresAt: refreshPayload.Expires,
+		},
 	}, nil
 }
 
