@@ -15,6 +15,8 @@ type Querier interface {
 	BlockAllUserSession(ctx context.Context, userID uuid.UUID) error
 	BlockUser(ctx context.Context, id uuid.UUID) error
 	CheckUsername(ctx context.Context, lower string) (int64, error)
+	CleanupVerifiedAndExpiredRequests(ctx context.Context) error
+	CreateEmailVerificationRequest(ctx context.Context, arg CreateEmailVerificationRequestParams) error
 	// Create a new session
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (Authentication, error)
@@ -27,6 +29,7 @@ type Querier interface {
 	// Delete a user login
 	DeleteUserLogin(ctx context.Context, id int32) error
 	DeleteUserProfileByID(ctx context.Context, userID uuid.UUID) error
+	GetEmailVerificationRequestByToken(ctx context.Context, token string) (EmailVerificationRequest, error)
 	GetSessionAndUserByRefreshToken(ctx context.Context, refreshToken string) (GetSessionAndUserByRefreshTokenRow, error)
 	GetSessionsByID(ctx context.Context, id uuid.UUID) (Session, error)
 	GetSessionsByRefreshToken(ctx context.Context, refreshToken string) (Session, error)
@@ -43,6 +46,7 @@ type Querier interface {
 	GetUserProfileByUID(ctx context.Context, userID uuid.UUID) (User, error)
 	RevokeSessionById(ctx context.Context, userID uuid.UUID) error
 	RotateSessionTokens(ctx context.Context, arg RotateSessionTokensParams) error
+	UpdateEmailVerificationRequest(ctx context.Context, arg UpdateEmailVerificationRequestParams) (EmailVerificationRequest, error)
 	UpdateImgUserProfile(ctx context.Context, arg UpdateImgUserProfileParams) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (Authentication, error)
 	// Update a user login

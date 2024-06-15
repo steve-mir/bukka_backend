@@ -15,12 +15,6 @@ import (
 	"github.com/steve-mir/bukka_backend/utils"
 )
 
-type LoginReq struct {
-	Identifier string `json:"identifier" binding:"required"`
-	FcmToken   string `json:"fcm_token"`
-	Password   string `json:"password" binding:"required,passwordValidator"`
-}
-
 func LogUserIn(req LoginReq, store sqlc.Store, ctx context.Context, config utils.Config, clientIP, agent string) (UserAuthRes, error) {
 	if err := validateLoginUserRequest(req.Identifier); err != nil {
 		return UserAuthRes{}, err
