@@ -18,7 +18,7 @@ const (
 
 type Server struct {
 	store           db.Store
-	router          *gin.Engine
+	Router          *gin.Engine
 	db              *sql.DB
 	config          utils.Config
 	taskDistributor worker.TaskDistributor
@@ -69,12 +69,12 @@ func (server *Server) setupRouter() {
 	// router.POST(baseUrl+"verify_mfa", server.register)
 	// router.POST(baseUrl+"bypass_mfa", server.register)
 
-	server.router = router
+	server.Router = router
 }
 
 // Start runs the HTTP server on a specifix address
 func (server *Server) Start(address string) error {
-	return server.router.Run(address)
+	return server.Router.Run(address)
 }
 
 func errorResponse(err error) gin.H {
