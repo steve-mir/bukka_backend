@@ -20,13 +20,13 @@ func (s *Server) register(ctx *gin.Context) {
 	agent := ctx.Request.UserAgent()
 
 	// Begin transaction
-	tx, err := s.connPool.Begin(ctx)
+	tx, err := s.db.Begin()
 
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback()
 
 	qtx := sqlc.New(tx)
 
@@ -65,7 +65,7 @@ func (s *Server) register(ctx *gin.Context) {
 	}
 
 	// Only commit the transaction if all previous steps were successful
-	if err := tx.Commit(ctx); err != nil {
+	if err := tx.Commit(); err != nil {
 		// return nil, status.Errorf(codes.Internal, "an unexpected error occurred during transaction commit: %s", err)
 		log.Err(err).Msg("Error6")
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))

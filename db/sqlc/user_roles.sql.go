@@ -25,7 +25,7 @@ type CreateUserRoleParams struct {
 }
 
 func (q *Queries) CreateUserRole(ctx context.Context, arg CreateUserRoleParams) (UserRole, error) {
-	row := q.db.QueryRow(ctx, createUserRole, arg.UserID, arg.RoleID)
+	row := q.db.QueryRowContext(ctx, createUserRole, arg.UserID, arg.RoleID)
 	var i UserRole
 	err := row.Scan(&i.ID, &i.UserID, &i.RoleID)
 	return i, err

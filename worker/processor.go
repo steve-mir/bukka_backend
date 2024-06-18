@@ -2,9 +2,9 @@ package worker
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/hibiken/asynq"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog/log"
 	"github.com/steve-mir/bukka_backend/db/sqlc"
 )
@@ -20,12 +20,12 @@ type TaskProcessor interface {
 }
 
 type RedisTaskProcessor struct {
-	server   *asynq.Server
-	store    sqlc.Store
-	connPool *pgxpool.Pool
+	server *asynq.Server
+	store  sqlc.Store
+	db     *sql.DB
 }
 
-func NewRedisTaskProcessor(redisOpt asynq.RedisClientOpt, store sqlc.Store, connPool *pgxpool.Pool) TaskProcessor {
+func NewRedisTaskProcessor(redisOpt asynq.RedisClientOpt, store sqlc.Store, db *sql.DB) TaskProcessor {
 
 	server := asynq.NewServer(
 		redisOpt,
@@ -42,9 +42,9 @@ func NewRedisTaskProcessor(redisOpt asynq.RedisClientOpt, store sqlc.Store, conn
 		})
 
 	return &RedisTaskProcessor{
-		server:   server,
-		store:    store,
-		connPool: connPool,
+		server: server,
+		store:  store,
+		db:     db,
 	}
 }
 

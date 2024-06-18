@@ -7,9 +7,9 @@ package sqlc
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createUserProfile = `-- name: CreateUserProfile :exec
@@ -20,14 +20,14 @@ VALUES ($1, $2, $3, $4)
 `
 
 type CreateUserProfileParams struct {
-	UserID    uuid.UUID   `json:"user_id"`
-	ImageUrl  pgtype.Text `json:"image_url"`
-	FirstName pgtype.Text `json:"first_name"`
-	LastName  pgtype.Text `json:"last_name"`
+	UserID    uuid.UUID      `json:"user_id"`
+	ImageUrl  sql.NullString `json:"image_url"`
+	FirstName sql.NullString `json:"first_name"`
+	LastName  sql.NullString `json:"last_name"`
 }
 
 func (q *Queries) CreateUserProfile(ctx context.Context, arg CreateUserProfileParams) error {
-	_, err := q.db.Exec(ctx, createUserProfile,
+	_, err := q.db.ExecContext(ctx, createUserProfile,
 		arg.UserID,
 		arg.ImageUrl,
 		arg.FirstName,
@@ -41,7 +41,7 @@ DELETE FROM users WHERE user_id = $1
 `
 
 func (q *Queries) DeleteUserProfileByID(ctx context.Context, userID uuid.UUID) error {
-	_, err := q.db.Exec(ctx, deleteUserProfileByID, userID)
+	_, err := q.db.ExecContext(ctx, deleteUserProfileByID, userID)
 	return err
 }
 
@@ -65,19 +65,19 @@ WHERE
 `
 
 type GetUserProfileRow struct {
-	ID         uuid.UUID          `json:"id"`
-	Username   pgtype.Text        `json:"username"`
-	Email      string             `json:"email"`
-	Phone      pgtype.Text        `json:"phone"`
-	CreatedAt  pgtype.Timestamptz `json:"created_at"`
-	IsVerified pgtype.Bool        `json:"is_verified"`
-	FirstName  pgtype.Text        `json:"first_name"`
-	LastName   pgtype.Text        `json:"last_name"`
-	ImageUrl   pgtype.Text        `json:"image_url"`
+	ID         uuid.UUID      `json:"id"`
+	Username   sql.NullString `json:"username"`
+	Email      string         `json:"email"`
+	Phone      sql.NullString `json:"phone"`
+	CreatedAt  sql.NullTime   `json:"created_at"`
+	IsVerified sql.NullBool   `json:"is_verified"`
+	FirstName  sql.NullString `json:"first_name"`
+	LastName   sql.NullString `json:"last_name"`
+	ImageUrl   sql.NullString `json:"image_url"`
 }
 
-func (q *Queries) GetUserProfile(ctx context.Context, username pgtype.Text) (GetUserProfileRow, error) {
-	row := q.db.QueryRow(ctx, getUserProfile, username)
+func (q *Queries) GetUserProfile(ctx context.Context, username sql.NullString) (GetUserProfileRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserProfile, username)
 	var i GetUserProfileRow
 	err := row.Scan(
 		&i.ID,
@@ -98,7 +98,7 @@ SELECT id, user_id, first_name, last_name, image_url FROM users WHERE user_id = 
 `
 
 func (q *Queries) GetUserProfileByUID(ctx context.Context, userID uuid.UUID) (User, error) {
-	row := q.db.QueryRow(ctx, getUserProfileByUID, userID)
+	row := q.db.QueryRowContext(ctx, getUserProfileByUID, userID)
 	var i User
 	err := row.Scan(
 		&i.ID,
@@ -115,11 +115,11 @@ UPDATE users SET image_url = $2 WHERE user_id = $1
 `
 
 type UpdateImgUserProfileParams struct {
-	UserID   uuid.UUID   `json:"user_id"`
-	ImageUrl pgtype.Text `json:"image_url"`
+	UserID   uuid.UUID      `json:"user_id"`
+	ImageUrl sql.NullString `json:"image_url"`
 }
 
 func (q *Queries) UpdateImgUserProfile(ctx context.Context, arg UpdateImgUserProfileParams) error {
-	_, err := q.db.Exec(ctx, updateImgUserProfile, arg.UserID, arg.ImageUrl)
+	_, err := q.db.ExecContext(ctx, updateImgUserProfile, arg.UserID, arg.ImageUrl)
 	return err
 }

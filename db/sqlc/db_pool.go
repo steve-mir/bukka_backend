@@ -44,9 +44,9 @@ func CreateDbPool(config utils.Config) (*sql.DB, error) {
 
 	// This is for analyzing the stats after setting a connection
 
-	log.Info().Msgf("@CreateDbPool MYSQL Open Connections: %v", db.Stats().OpenConnections)
-	log.Info().Msgf("@CreateDbPool MYSQL InUse Connections: %v", db.Stats().InUse)
-	log.Info().Msgf("@CreateDbPool MYSQL Idle Connections: %v", db.Stats().Idle)
+	log.Info().Msgf("@CreateDbPool SQL Open Connections: %v", db.Stats().OpenConnections)
+	log.Info().Msgf("@CreateDbPool SQL InUse Connections: %v", db.Stats().InUse)
+	log.Info().Msgf("@CreateDbPool SQL Idle Connections: %v", db.Stats().Idle)
 
 	if err != nil {
 		log.Fatal().Err(err).Msg("CreateDbPool Error: ")

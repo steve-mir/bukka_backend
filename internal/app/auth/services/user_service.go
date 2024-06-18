@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/jackc/pgx/v5/pgxpool"
+
+	// "github.com/jackc/pgx/v5/pgtype"
+	// "github.com/jackc/pgx/v5/pgxpool"
 	"github.com/steve-mir/bukka_backend/db/sqlc"
 	"github.com/steve-mir/bukka_backend/utils"
 	"github.com/steve-mir/bukka_backend/worker"
@@ -52,8 +52,8 @@ func DeleteAccountRequest(ctx context.Context, password string, store sqlc.Store
 	// Proceed with soft deletion if all checks pass
 	_, err = store.UpdateUser(ctx, sqlc.UpdateUserParams{
 		ID:        uid,
-		IsDeleted: pgtype.Bool{Bool: true, Valid: true},
-		DeletedAt: pgtype.Timestamptz{Time: time.Now(), Valid: true},
+		IsDeleted: sql.NullBool{Bool: true, Valid: true},
+		DeletedAt: sql.NullTime{Time: time.Now(), Valid: true},
 	})
 	if err != nil {
 		return err
@@ -114,12 +114,12 @@ func AccRecoveryRequest(ctx context.Context, store sqlc.Store, td worker.TaskDis
 }
 
 // TODO: Fix go routines (Consider using lib/pq)
-func AccountRecovery(ctx context.Context, connPool *pgxpool.Pool, store sqlc.Store, recoveryToken string) error {
+func AccountRecovery(ctx context.Context, db *sql.DB, store sqlc.Store, recoveryToken string) error {
 
 	// Retrieve the user and recovery token information from the database
 	usr, err := store.GetUserFromDeleteReqByToken(ctx, recoveryToken)
 	if err != nil {
-		if err == pgx.ErrNoRows {
+		if err == sql.ErrNoRows {
 			return errors.New("account recovery request is invalid or has expired")
 		}
 		return err
@@ -133,13 +133,13 @@ func AccountRecovery(ctx context.Context, connPool *pgxpool.Pool, store sqlc.Sto
 		return errors.New("account recovery request is invalid or has expired")
 	}
 
-	tx, err := connPool.Begin(ctx)
+	tx, err := db.Begin()
 	if err != nil {
 		return err
 	}
 	defer func() {
 		if r := recover(); r != nil {
-			tx.Rollback(ctx)
+			tx.Rollback()
 		}
 	}()
 
@@ -150,16 +150,14 @@ func AccountRecovery(ctx context.Context, connPool *pgxpool.Pool, store sqlc.Sto
 
 	// Goroutine for updating token status
 	eg.Go(func() error {
-		// defer wg.Done()
 
 		// Assuming the recovery token is valid, proceed to unmark the account as deleted
 		_, err = qtx.UpdateUser(ctx, sqlc.UpdateUserParams{
 			ID:        usr.UserID,
-			IsDeleted: pgtype.Bool{Bool: false, Valid: true},
-			DeletedAt: pgtype.Timestamptz{Time: time.Time{}, Valid: true}, // TODO: Set the null time
+			IsDeleted: sql.NullBool{Bool: false, Valid: true},
+			DeletedAt: sql.NullTime{Time: time.Time{}, Valid: true}, // TODO: Set the null time
 		})
 		if err != nil {
-			// tx.Rollback(ctx)
 			log.Println("Error 1", err.Error())
 			return err
 		}
@@ -184,13 +182,13 @@ func AccountRecovery(ctx context.Context, connPool *pgxpool.Pool, store sqlc.Sto
 	// Wait for both goroutines to complete
 	// wg.Wait()
 	if err := eg.Wait(); err != nil {
-		tx.Rollback(ctx)
+		tx.Rollback()
 		log.Println("Error 3", err.Error())
 		return err
 	}
 
 	// Commit the transaction if all updates were successful
-	err = tx.Commit(ctx)
+	err = tx.Commit()
 	if err != nil {
 		log.Println("Error 4", err.Error())
 		return err

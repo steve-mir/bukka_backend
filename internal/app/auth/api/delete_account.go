@@ -51,7 +51,7 @@ func (s *Server) requestAccountRecovery(ctx *gin.Context) {
 
 func (s *Server) completeAccountRecovery(ctx *gin.Context) {
 	token := ctx.Query("token")
-	err := services.AccountRecovery(ctx, s.connPool, s.store, token)
+	err := services.AccountRecovery(ctx, s.db, s.store, token)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return

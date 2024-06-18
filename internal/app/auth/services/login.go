@@ -2,14 +2,13 @@ package services
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"log"
-	"net/netip"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/sqlc-dev/pqtype"
 	"github.com/steve-mir/bukka_backend/constants"
 	"github.com/steve-mir/bukka_backend/db/sqlc"
 	"github.com/steve-mir/bukka_backend/utils"
@@ -25,9 +24,9 @@ func LogUserIn(req LoginReq, store sqlc.Store, ctx context.Context, config utils
 		return UserAuthRes{}, fmt.Errorf("error creating uid %s", err)
 	}
 
-	user, err := store.GetUserAndRoleByIdentifier(ctx, pgtype.Text{String: req.Identifier, Valid: true})
+	user, err := store.GetUserAndRoleByIdentifier(ctx, sql.NullString{String: req.Identifier, Valid: true})
 	if err != nil {
-		if err == pgx.ErrNoRows {
+		if err == sql.ErrNoRows {
 			return UserAuthRes{}, errors.New(constants.LoginError)
 		}
 		return UserAuthRes{}, errors.New(constants.LoginError)
@@ -65,7 +64,7 @@ func LogUserIn(req LoginReq, store sqlc.Store, ctx context.Context, config utils
 		return UserAuthRes{}, fmt.Errorf("error creating access token %s", err)
 	}
 
-	ip, err := utils.GetIpAddr(clientIP)
+	ip := utils.GetIpAddr(clientIP)
 	if err != nil {
 		return UserAuthRes{}, fmt.Errorf("error getting ip address %s", err)
 	}
@@ -76,8 +75,8 @@ func LogUserIn(req LoginReq, store sqlc.Store, ctx context.Context, config utils
 		RefreshToken:    refreshToken,
 		RefreshTokenExp: refreshPayload.Expires,
 		UserAgent:       agent,
-		IpAddress:       *ip,
-		FcmToken:        pgtype.Text{String: req.FcmToken, Valid: true},
+		IpAddress:       ip,
+		FcmToken:        sql.NullString{String: req.FcmToken, Valid: true},
 	})
 
 	if err != nil {
@@ -145,11 +144,11 @@ func checkAccountStat(isSuspended bool, isDeleted bool) error {
 	return nil
 }
 
-func recordLoginSuccess(ctx context.Context, dbStore sqlc.Store, userId uuid.UUID, userAgent string, ipAddrs *netip.Addr) error {
+func recordLoginSuccess(ctx context.Context, dbStore sqlc.Store, userId uuid.UUID, userAgent string, ipAddrs pqtype.Inet) error {
 
 	_, err := dbStore.CreateUserLogin(ctx, sqlc.CreateUserLoginParams{
 		UserID: userId,
-		UserAgent: pgtype.Text{
+		UserAgent: sql.NullString{
 			String: userAgent,
 			Valid:  true,
 		},

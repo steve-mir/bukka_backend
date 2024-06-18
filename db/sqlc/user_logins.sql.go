@@ -7,10 +7,10 @@ package sqlc
 
 import (
 	"context"
-	"net/netip"
+	"database/sql"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/sqlc-dev/pqtype"
 )
 
 const createUserLogin = `-- name: CreateUserLogin :one
@@ -20,14 +20,14 @@ RETURNING id, user_id, login_at, ip_address, user_agent
 `
 
 type CreateUserLoginParams struct {
-	UserID    uuid.UUID   `json:"user_id"`
-	IpAddress *netip.Addr `json:"ip_address"`
-	UserAgent pgtype.Text `json:"user_agent"`
+	UserID    uuid.UUID      `json:"user_id"`
+	IpAddress pqtype.Inet    `json:"ip_address"`
+	UserAgent sql.NullString `json:"user_agent"`
 }
 
 // Create a new user login
 func (q *Queries) CreateUserLogin(ctx context.Context, arg CreateUserLoginParams) (UserLogin, error) {
-	row := q.db.QueryRow(ctx, createUserLogin, arg.UserID, arg.IpAddress, arg.UserAgent)
+	row := q.db.QueryRowContext(ctx, createUserLogin, arg.UserID, arg.IpAddress, arg.UserAgent)
 	var i UserLogin
 	err := row.Scan(
 		&i.ID,
@@ -46,7 +46,7 @@ WHERE id = $1
 
 // Delete a user login
 func (q *Queries) DeleteUserLogin(ctx context.Context, id int32) error {
-	_, err := q.db.Exec(ctx, deleteUserLogin, id)
+	_, err := q.db.ExecContext(ctx, deleteUserLogin, id)
 	return err
 }
 
@@ -57,7 +57,7 @@ WHERE user_id = $1
 
 // Get user logins by user ID
 func (q *Queries) GetUserLoginsByUserID(ctx context.Context, userID uuid.UUID) ([]UserLogin, error) {
-	rows, err := q.db.Query(ctx, getUserLoginsByUserID, userID)
+	rows, err := q.db.QueryContext(ctx, getUserLoginsByUserID, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -76,6 +76,9 @@ func (q *Queries) GetUserLoginsByUserID(ctx context.Context, userID uuid.UUID) (
 		}
 		items = append(items, i)
 	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
@@ -90,15 +93,15 @@ RETURNING id, user_id, login_at, ip_address, user_agent
 `
 
 type UpdateUserLoginParams struct {
-	LoginAt   pgtype.Timestamptz `json:"login_at"`
-	IpAddress *netip.Addr        `json:"ip_address"`
-	UserAgent pgtype.Text        `json:"user_agent"`
-	ID        int32              `json:"id"`
+	LoginAt   sql.NullTime   `json:"login_at"`
+	IpAddress pqtype.Inet    `json:"ip_address"`
+	UserAgent sql.NullString `json:"user_agent"`
+	ID        int32          `json:"id"`
 }
 
 // Update a user login
 func (q *Queries) UpdateUserLogin(ctx context.Context, arg UpdateUserLoginParams) (UserLogin, error) {
-	row := q.db.QueryRow(ctx, updateUserLogin,
+	row := q.db.QueryRowContext(ctx, updateUserLogin,
 		arg.LoginAt,
 		arg.IpAddress,
 		arg.UserAgent,

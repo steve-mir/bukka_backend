@@ -1,10 +1,9 @@
 package main
 
 import (
-	"context"
+	"database/sql"
 
 	"github.com/hibiken/asynq"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog/log"
 	"github.com/steve-mir/bukka_backend/db/sqlc"
 	"github.com/steve-mir/bukka_backend/internal/app/auth/api"
@@ -18,9 +17,14 @@ func main() {
 		log.Fatal().Msg("cannot load config " + err.Error())
 	}
 
-	connPool, err := pgxpool.New(context.Background(), config.DBSource)
+	// connPool, err := pgxpool.New(context.Background(), config.DBSource)
+	// if err != nil {
+	// 	log.Fatal().Err(err).Msg("cannot connect to db")
+	// }
+	db, err := sqlc.CreateDbPool(config)
 	if err != nil {
-		log.Fatal().Err(err).Msg("cannot connect to db")
+		log.Fatal().Msg("cannot create db pool")
+		return
 	}
 
 	redisOpt := asynq.RedisClientOpt{
@@ -31,14 +35,14 @@ func main() {
 
 	taskDistributor := worker.NewRedisTaskDistributor(redisOpt)
 
-	store := sqlc.NewStore(connPool)
-	go runTaskProcessor(redisOpt, store, connPool)
-	runGinServer(store, connPool, config, taskDistributor, err)
+	store := sqlc.NewStore(db)
+	go runTaskProcessor(redisOpt, store, db)
+	runGinServer(store, db, config, taskDistributor, err)
 
 }
 
-func runGinServer(store sqlc.Store, connPool *pgxpool.Pool, config utils.Config, taskDistributor worker.TaskDistributor, err error) {
-	server := api.NewServer(store, connPool, config, taskDistributor)
+func runGinServer(store sqlc.Store, db *sql.DB, config utils.Config, taskDistributor worker.TaskDistributor, err error) {
+	server := api.NewServer(store, db, config, taskDistributor)
 
 	err = server.Start(config.HTTPAuthServerAddress)
 	if err != nil {
@@ -46,8 +50,8 @@ func runGinServer(store sqlc.Store, connPool *pgxpool.Pool, config utils.Config,
 	}
 }
 
-func runTaskProcessor(redisOpt asynq.RedisClientOpt, store sqlc.Store, connPool *pgxpool.Pool) {
-	mailer := worker.NewRedisTaskProcessor(redisOpt, store, connPool)
+func runTaskProcessor(redisOpt asynq.RedisClientOpt, store sqlc.Store, db *sql.DB) {
+	mailer := worker.NewRedisTaskProcessor(redisOpt, store, db)
 	// log.Info().Msg("Starting task processor")
 	err := mailer.Start()
 	if err != nil {

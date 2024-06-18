@@ -2,13 +2,13 @@ package services
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/steve-mir/bukka_backend/db/sqlc"
 	"github.com/steve-mir/bukka_backend/utils"
 	"github.com/steve-mir/bukka_backend/worker"
@@ -162,7 +162,7 @@ func VerifyEmail(ctx context.Context, store sqlc.Store, code string) error {
 	// Update token to used
 	usr, err := store.UpdateEmailVerificationRequest(context.Background(), sqlc.UpdateEmailVerificationRequestParams{
 		Token:      code,
-		IsVerified: pgtype.Bool{Bool: true, Valid: true},
+		IsVerified: sql.NullBool{Bool: true, Valid: true},
 	})
 	if err != nil {
 		return err
@@ -171,7 +171,7 @@ func VerifyEmail(ctx context.Context, store sqlc.Store, code string) error {
 	// Verify user in "users" db
 	_, err = store.UpdateUser(ctx, sqlc.UpdateUserParams{
 		ID:              usr.UserID,
-		IsEmailVerified: pgtype.Bool{Bool: true, Valid: true},
+		IsEmailVerified: sql.NullBool{Bool: true, Valid: true},
 	})
 	if err != nil {
 		return fmt.Errorf("error updating profile %s", err)

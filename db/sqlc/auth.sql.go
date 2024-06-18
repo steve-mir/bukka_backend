@@ -7,9 +7,10 @@ package sqlc
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/lib/pq"
 )
 
 const blockUser = `-- name: BlockUser :exec
@@ -20,7 +21,7 @@ WHERE id = $1
 `
 
 func (q *Queries) BlockUser(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.Exec(ctx, blockUser, id)
+	_, err := q.db.ExecContext(ctx, blockUser, id)
 	return err
 }
 
@@ -29,7 +30,7 @@ SELECT COUNT(*) FROM authentications WHERE LOWER(username) = LOWER($1)
 `
 
 func (q *Queries) CheckUsername(ctx context.Context, lower string) (int64, error) {
-	row := q.db.QueryRow(ctx, checkUsername, lower)
+	row := q.db.QueryRowContext(ctx, checkUsername, lower)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -44,14 +45,14 @@ RETURNING id, email, phone, username, password_hash, created_at, updated_at, is_
 `
 
 type CreateUserParams struct {
-	ID           uuid.UUID   `json:"id"`
-	Email        string      `json:"email"`
-	Username     pgtype.Text `json:"username"`
-	PasswordHash string      `json:"password_hash"`
+	ID           uuid.UUID      `json:"id"`
+	Email        string         `json:"email"`
+	Username     sql.NullString `json:"username"`
+	PasswordHash string         `json:"password_hash"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (Authentication, error) {
-	row := q.db.QueryRow(ctx, createUser,
+	row := q.db.QueryRowContext(ctx, createUser,
 		arg.ID,
 		arg.Email,
 		arg.Username,
@@ -87,7 +88,7 @@ DELETE FROM authentications WHERE id = $1
 `
 
 func (q *Queries) DeleteUserByID(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.Exec(ctx, deleteUserByID, id)
+	_, err := q.db.ExecContext(ctx, deleteUserByID, id)
 	return err
 }
 
@@ -96,7 +97,7 @@ SELECT id FROM authentications WHERE LOWER(username) = ANY($1::string[])
 `
 
 func (q *Queries) GetUidsFromUsername(ctx context.Context, dollar_1 []string) ([]uuid.UUID, error) {
-	rows, err := q.db.Query(ctx, getUidsFromUsername, dollar_1)
+	rows, err := q.db.QueryContext(ctx, getUidsFromUsername, pq.Array(dollar_1))
 	if err != nil {
 		return nil, err
 	}
@@ -108,6 +109,9 @@ func (q *Queries) GetUidsFromUsername(ctx context.Context, dollar_1 []string) ([
 			return nil, err
 		}
 		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -124,35 +128,35 @@ WHERE authentications.username = $1 OR authentications.phone = $1 OR authenticat
 `
 
 type GetUserAndRoleByIdentifierRow struct {
-	ID                  uuid.UUID          `json:"id"`
-	Email               string             `json:"email"`
-	Phone               pgtype.Text        `json:"phone"`
-	Username            pgtype.Text        `json:"username"`
-	PasswordHash        string             `json:"password_hash"`
-	CreatedAt           pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt           pgtype.Timestamptz `json:"updated_at"`
-	IsSuspended         pgtype.Bool        `json:"is_suspended"`
-	IsDeleted           pgtype.Bool        `json:"is_deleted"`
-	IsVerified          pgtype.Bool        `json:"is_verified"`
-	IsEmailVerified     pgtype.Bool        `json:"is_email_verified"`
-	DeletedAt           pgtype.Timestamptz `json:"deleted_at"`
-	VerifiedAt          pgtype.Timestamptz `json:"verified_at"`
-	SuspendedAt         pgtype.Timestamptz `json:"suspended_at"`
-	LoginAttempts       pgtype.Int4        `json:"login_attempts"`
-	PasswordLastChanged pgtype.Timestamptz `json:"password_last_changed"`
-	LockoutDuration     pgtype.Int4        `json:"lockout_duration"`
-	LockoutUntil        pgtype.Timestamptz `json:"lockout_until"`
-	IsMfaEnabled        pgtype.Bool        `json:"is_mfa_enabled"`
-	RoleID              int32              `json:"role_id"`
-	ID_2                pgtype.Int4        `json:"id_2"`
-	UserID              pgtype.UUID        `json:"user_id"`
-	FirstName           pgtype.Text        `json:"first_name"`
-	LastName            pgtype.Text        `json:"last_name"`
-	ImageUrl            pgtype.Text        `json:"image_url"`
+	ID                  uuid.UUID      `json:"id"`
+	Email               string         `json:"email"`
+	Phone               sql.NullString `json:"phone"`
+	Username            sql.NullString `json:"username"`
+	PasswordHash        string         `json:"password_hash"`
+	CreatedAt           sql.NullTime   `json:"created_at"`
+	UpdatedAt           sql.NullTime   `json:"updated_at"`
+	IsSuspended         sql.NullBool   `json:"is_suspended"`
+	IsDeleted           sql.NullBool   `json:"is_deleted"`
+	IsVerified          sql.NullBool   `json:"is_verified"`
+	IsEmailVerified     sql.NullBool   `json:"is_email_verified"`
+	DeletedAt           sql.NullTime   `json:"deleted_at"`
+	VerifiedAt          sql.NullTime   `json:"verified_at"`
+	SuspendedAt         sql.NullTime   `json:"suspended_at"`
+	LoginAttempts       sql.NullInt32  `json:"login_attempts"`
+	PasswordLastChanged sql.NullTime   `json:"password_last_changed"`
+	LockoutDuration     sql.NullInt32  `json:"lockout_duration"`
+	LockoutUntil        sql.NullTime   `json:"lockout_until"`
+	IsMfaEnabled        sql.NullBool   `json:"is_mfa_enabled"`
+	RoleID              int32          `json:"role_id"`
+	ID_2                sql.NullInt32  `json:"id_2"`
+	UserID              uuid.NullUUID  `json:"user_id"`
+	FirstName           sql.NullString `json:"first_name"`
+	LastName            sql.NullString `json:"last_name"`
+	ImageUrl            sql.NullString `json:"image_url"`
 }
 
-func (q *Queries) GetUserAndRoleByIdentifier(ctx context.Context, username pgtype.Text) (GetUserAndRoleByIdentifierRow, error) {
-	row := q.db.QueryRow(ctx, getUserAndRoleByIdentifier, username)
+func (q *Queries) GetUserAndRoleByIdentifier(ctx context.Context, username sql.NullString) (GetUserAndRoleByIdentifierRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserAndRoleByIdentifier, username)
 	var i GetUserAndRoleByIdentifierRow
 	err := row.Scan(
 		&i.ID,
@@ -189,7 +193,7 @@ SELECT id, email, phone, username, password_hash, created_at, updated_at, is_sus
 `
 
 func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (Authentication, error) {
-	row := q.db.QueryRow(ctx, getUserByID, id)
+	row := q.db.QueryRowContext(ctx, getUserByID, id)
 	var i Authentication
 	err := row.Scan(
 		&i.ID,
@@ -222,7 +226,7 @@ LIMIT 1
 `
 
 func (q *Queries) GetUserByIdentifier(ctx context.Context, email string) (Authentication, error) {
-	row := q.db.QueryRow(ctx, getUserByIdentifier, email)
+	row := q.db.QueryRowContext(ctx, getUserByIdentifier, email)
 	var i Authentication
 	err := row.Scan(
 		&i.ID,
@@ -252,8 +256,8 @@ const getUserByUsername = `-- name: GetUserByUsername :one
 SELECT id FROM authentications WHERE username = $1
 `
 
-func (q *Queries) GetUserByUsername(ctx context.Context, username pgtype.Text) (uuid.UUID, error) {
-	row := q.db.QueryRow(ctx, getUserByUsername, username)
+func (q *Queries) GetUserByUsername(ctx context.Context, username sql.NullString) (uuid.UUID, error) {
+	row := q.db.QueryRowContext(ctx, getUserByUsername, username)
 	var id uuid.UUID
 	err := row.Scan(&id)
 	return id, err
@@ -263,8 +267,8 @@ const getUserIDsFromUsernames = `-- name: GetUserIDsFromUsernames :many
 SELECT id FROM authentications WHERE username = ANY($1)
 `
 
-func (q *Queries) GetUserIDsFromUsernames(ctx context.Context, username pgtype.Text) ([]uuid.UUID, error) {
-	rows, err := q.db.Query(ctx, getUserIDsFromUsernames, username)
+func (q *Queries) GetUserIDsFromUsernames(ctx context.Context, username sql.NullString) ([]uuid.UUID, error) {
+	rows, err := q.db.QueryContext(ctx, getUserIDsFromUsernames, username)
 	if err != nil {
 		return nil, err
 	}
@@ -276,6 +280,9 @@ func (q *Queries) GetUserIDsFromUsernames(ctx context.Context, username pgtype.T
 			return nil, err
 		}
 		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -309,28 +316,28 @@ RETURNING id, email, phone, username, password_hash, created_at, updated_at, is_
 `
 
 type UpdateUserParams struct {
-	Username            pgtype.Text        `json:"username"`
-	Email               pgtype.Text        `json:"email"`
-	Phone               pgtype.Text        `json:"phone"`
-	PasswordHash        pgtype.Text        `json:"password_hash"`
-	IsEmailVerified     pgtype.Bool        `json:"is_email_verified"`
-	IsSuspended         pgtype.Bool        `json:"is_suspended"`
-	IsDeleted           pgtype.Bool        `json:"is_deleted"`
-	UpdatedAt           pgtype.Timestamptz `json:"updated_at"`
-	DeletedAt           pgtype.Timestamptz `json:"deleted_at"`
-	VerifiedAt          pgtype.Timestamptz `json:"verified_at"`
-	SuspendedAt         pgtype.Timestamptz `json:"suspended_at"`
-	LoginAttempts       pgtype.Int4        `json:"login_attempts"`
-	LockoutDuration     pgtype.Int4        `json:"lockout_duration"`
-	LockoutUntil        pgtype.Timestamptz `json:"lockout_until"`
-	PasswordLastChanged pgtype.Timestamptz `json:"password_last_changed"`
-	IsVerified          pgtype.Bool        `json:"is_verified"`
-	IsMfaEnabled        pgtype.Bool        `json:"is_mfa_enabled"`
-	ID                  uuid.UUID          `json:"id"`
+	Username            sql.NullString `json:"username"`
+	Email               sql.NullString `json:"email"`
+	Phone               sql.NullString `json:"phone"`
+	PasswordHash        sql.NullString `json:"password_hash"`
+	IsEmailVerified     sql.NullBool   `json:"is_email_verified"`
+	IsSuspended         sql.NullBool   `json:"is_suspended"`
+	IsDeleted           sql.NullBool   `json:"is_deleted"`
+	UpdatedAt           sql.NullTime   `json:"updated_at"`
+	DeletedAt           sql.NullTime   `json:"deleted_at"`
+	VerifiedAt          sql.NullTime   `json:"verified_at"`
+	SuspendedAt         sql.NullTime   `json:"suspended_at"`
+	LoginAttempts       sql.NullInt32  `json:"login_attempts"`
+	LockoutDuration     sql.NullInt32  `json:"lockout_duration"`
+	LockoutUntil        sql.NullTime   `json:"lockout_until"`
+	PasswordLastChanged sql.NullTime   `json:"password_last_changed"`
+	IsVerified          sql.NullBool   `json:"is_verified"`
+	IsMfaEnabled        sql.NullBool   `json:"is_mfa_enabled"`
+	ID                  uuid.UUID      `json:"id"`
 }
 
 func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (Authentication, error) {
-	row := q.db.QueryRow(ctx, updateUser,
+	row := q.db.QueryRowContext(ctx, updateUser,
 		arg.Username,
 		arg.Email,
 		arg.Phone,
@@ -387,6 +394,6 @@ type UpdateUserPasswordParams struct {
 }
 
 func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error {
-	_, err := q.db.Exec(ctx, updateUserPassword, arg.ID, arg.PasswordHash)
+	_, err := q.db.ExecContext(ctx, updateUserPassword, arg.ID, arg.PasswordHash)
 	return err
 }

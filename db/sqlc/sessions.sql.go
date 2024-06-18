@@ -7,11 +7,11 @@ package sqlc
 
 import (
 	"context"
-	"net/netip"
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/sqlc-dev/pqtype"
 )
 
 const blockAllUserSession = `-- name: BlockAllUserSession :exec
@@ -19,7 +19,7 @@ UPDATE sessions SET blocked_at = now(), invalidated_at = now() WHERE user_id = $
 `
 
 func (q *Queries) BlockAllUserSession(ctx context.Context, userID uuid.UUID) error {
-	_, err := q.db.Exec(ctx, blockAllUserSession, userID)
+	_, err := q.db.ExecContext(ctx, blockAllUserSession, userID)
 	return err
 }
 
@@ -30,22 +30,22 @@ VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id, user_id, ref
 `
 
 type CreateSessionParams struct {
-	ID              uuid.UUID          `json:"id"`
-	UserID          uuid.UUID          `json:"user_id"`
-	RefreshToken    string             `json:"refresh_token"`
-	RefreshTokenExp time.Time          `json:"refresh_token_exp"`
-	UserAgent       string             `json:"user_agent"`
-	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
-	IpAddress       netip.Addr         `json:"ip_address"`
-	BlockedAt       pgtype.Timestamptz `json:"blocked_at"`
-	InvalidatedAt   pgtype.Timestamptz `json:"invalidated_at"`
-	LastActiveAt    pgtype.Timestamptz `json:"last_active_at"`
-	FcmToken        pgtype.Text        `json:"fcm_token"`
+	ID              uuid.UUID      `json:"id"`
+	UserID          uuid.UUID      `json:"user_id"`
+	RefreshToken    string         `json:"refresh_token"`
+	RefreshTokenExp time.Time      `json:"refresh_token_exp"`
+	UserAgent       string         `json:"user_agent"`
+	UpdatedAt       sql.NullTime   `json:"updated_at"`
+	IpAddress       pqtype.Inet    `json:"ip_address"`
+	BlockedAt       sql.NullTime   `json:"blocked_at"`
+	InvalidatedAt   sql.NullTime   `json:"invalidated_at"`
+	LastActiveAt    sql.NullTime   `json:"last_active_at"`
+	FcmToken        sql.NullString `json:"fcm_token"`
 }
 
 // Create a new session
 func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error) {
-	row := q.db.QueryRow(ctx, createSession,
+	row := q.db.QueryRowContext(ctx, createSession,
 		arg.ID,
 		arg.UserID,
 		arg.RefreshToken,
@@ -82,7 +82,7 @@ WHERE id = $1
 `
 
 func (q *Queries) DeleteSession(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.Exec(ctx, deleteSession, id)
+	_, err := q.db.ExecContext(ctx, deleteSession, id)
 	return err
 }
 
@@ -95,27 +95,27 @@ WHERE s.refresh_token = $1
 `
 
 type GetSessionAndUserByRefreshTokenRow struct {
-	ID              uuid.UUID          `json:"id"`
-	UserID          uuid.UUID          `json:"user_id"`
-	RefreshToken    string             `json:"refresh_token"`
-	RefreshTokenExp time.Time          `json:"refresh_token_exp"`
-	CreatedAt       pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
-	InvalidatedAt   pgtype.Timestamptz `json:"invalidated_at"`
-	LastActiveAt    pgtype.Timestamptz `json:"last_active_at"`
-	BlockedAt       pgtype.Timestamptz `json:"blocked_at"`
-	UserAgent       string             `json:"user_agent"`
-	IpAddress       netip.Addr         `json:"ip_address"`
-	FcmToken        pgtype.Text        `json:"fcm_token"`
-	Username        pgtype.Text        `json:"username"`
-	Email           string             `json:"email"`
-	Phone           pgtype.Text        `json:"phone"`
-	IsEmailVerified pgtype.Bool        `json:"is_email_verified"`
-	RoleID          pgtype.Int4        `json:"role_id"`
+	ID              uuid.UUID      `json:"id"`
+	UserID          uuid.UUID      `json:"user_id"`
+	RefreshToken    string         `json:"refresh_token"`
+	RefreshTokenExp time.Time      `json:"refresh_token_exp"`
+	CreatedAt       sql.NullTime   `json:"created_at"`
+	UpdatedAt       sql.NullTime   `json:"updated_at"`
+	InvalidatedAt   sql.NullTime   `json:"invalidated_at"`
+	LastActiveAt    sql.NullTime   `json:"last_active_at"`
+	BlockedAt       sql.NullTime   `json:"blocked_at"`
+	UserAgent       string         `json:"user_agent"`
+	IpAddress       pqtype.Inet    `json:"ip_address"`
+	FcmToken        sql.NullString `json:"fcm_token"`
+	Username        sql.NullString `json:"username"`
+	Email           string         `json:"email"`
+	Phone           sql.NullString `json:"phone"`
+	IsEmailVerified sql.NullBool   `json:"is_email_verified"`
+	RoleID          sql.NullInt32  `json:"role_id"`
 }
 
 func (q *Queries) GetSessionAndUserByRefreshToken(ctx context.Context, refreshToken string) (GetSessionAndUserByRefreshTokenRow, error) {
-	row := q.db.QueryRow(ctx, getSessionAndUserByRefreshToken, refreshToken)
+	row := q.db.QueryRowContext(ctx, getSessionAndUserByRefreshToken, refreshToken)
 	var i GetSessionAndUserByRefreshTokenRow
 	err := row.Scan(
 		&i.ID,
@@ -144,7 +144,7 @@ SELECT id, user_id, refresh_token, refresh_token_exp, created_at, updated_at, in
 `
 
 func (q *Queries) GetSessionsByID(ctx context.Context, id uuid.UUID) (Session, error) {
-	row := q.db.QueryRow(ctx, getSessionsByID, id)
+	row := q.db.QueryRowContext(ctx, getSessionsByID, id)
 	var i Session
 	err := row.Scan(
 		&i.ID,
@@ -169,7 +169,7 @@ WHERE refresh_token = $1
 `
 
 func (q *Queries) GetSessionsByRefreshToken(ctx context.Context, refreshToken string) (Session, error) {
-	row := q.db.QueryRow(ctx, getSessionsByRefreshToken, refreshToken)
+	row := q.db.QueryRowContext(ctx, getSessionsByRefreshToken, refreshToken)
 	var i Session
 	err := row.Scan(
 		&i.ID,
@@ -194,7 +194,7 @@ WHERE user_id = $1
 `
 
 func (q *Queries) GetSessionsByUserID(ctx context.Context, userID uuid.UUID) ([]Session, error) {
-	rows, err := q.db.Query(ctx, getSessionsByUserID, userID)
+	rows, err := q.db.QueryContext(ctx, getSessionsByUserID, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -220,6 +220,9 @@ func (q *Queries) GetSessionsByUserID(ctx context.Context, userID uuid.UUID) ([]
 		}
 		items = append(items, i)
 	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
@@ -231,7 +234,7 @@ UPDATE sessions SET invalidated_at = now() WHERE user_id = $1
 `
 
 func (q *Queries) RevokeSessionById(ctx context.Context, userID uuid.UUID) error {
-	_, err := q.db.Exec(ctx, revokeSessionById, userID)
+	_, err := q.db.ExecContext(ctx, revokeSessionById, userID)
 	return err
 }
 
@@ -252,6 +255,6 @@ type RotateSessionTokensParams struct {
 }
 
 func (q *Queries) RotateSessionTokens(ctx context.Context, arg RotateSessionTokensParams) error {
-	_, err := q.db.Exec(ctx, rotateSessionTokens, arg.ID, arg.RefreshToken, arg.RefreshTokenExp)
+	_, err := q.db.ExecContext(ctx, rotateSessionTokens, arg.ID, arg.RefreshToken, arg.RefreshTokenExp)
 	return err
 }

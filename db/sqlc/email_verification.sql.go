@@ -7,10 +7,10 @@ package sqlc
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const cleanupVerifiedAndExpiredRequests = `-- name: CleanupVerifiedAndExpiredRequests :exec
@@ -18,7 +18,7 @@ DELETE FROM email_verification_requests WHERE is_verified = true OR expires_at <
 `
 
 func (q *Queries) CleanupVerifiedAndExpiredRequests(ctx context.Context) error {
-	_, err := q.db.Exec(ctx, cleanupVerifiedAndExpiredRequests)
+	_, err := q.db.ExecContext(ctx, cleanupVerifiedAndExpiredRequests)
 	return err
 }
 
@@ -35,7 +35,7 @@ type CreateEmailVerificationRequestParams struct {
 }
 
 func (q *Queries) CreateEmailVerificationRequest(ctx context.Context, arg CreateEmailVerificationRequestParams) error {
-	_, err := q.db.Exec(ctx, createEmailVerificationRequest,
+	_, err := q.db.ExecContext(ctx, createEmailVerificationRequest,
 		arg.UserID,
 		arg.Email,
 		arg.Token,
@@ -49,7 +49,7 @@ SELECT id, user_id, email, token, is_verified, created_at, expires_at FROM email
 `
 
 func (q *Queries) GetEmailVerificationRequestByToken(ctx context.Context, token string) (EmailVerificationRequest, error) {
-	row := q.db.QueryRow(ctx, getEmailVerificationRequestByToken, token)
+	row := q.db.QueryRowContext(ctx, getEmailVerificationRequestByToken, token)
 	var i EmailVerificationRequest
 	err := row.Scan(
 		&i.ID,
@@ -69,12 +69,12 @@ RETURNING id, user_id, email, token, is_verified, created_at, expires_at
 `
 
 type UpdateEmailVerificationRequestParams struct {
-	IsVerified pgtype.Bool `json:"is_verified"`
-	Token      string      `json:"token"`
+	IsVerified sql.NullBool `json:"is_verified"`
+	Token      string       `json:"token"`
 }
 
 func (q *Queries) UpdateEmailVerificationRequest(ctx context.Context, arg UpdateEmailVerificationRequestParams) (EmailVerificationRequest, error) {
-	row := q.db.QueryRow(ctx, updateEmailVerificationRequest, arg.IsVerified, arg.Token)
+	row := q.db.QueryRowContext(ctx, updateEmailVerificationRequest, arg.IsVerified, arg.Token)
 	var i EmailVerificationRequest
 	err := row.Scan(
 		&i.ID,

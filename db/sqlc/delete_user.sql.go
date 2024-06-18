@@ -7,10 +7,10 @@ package sqlc
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createUserDeleteRequest = `-- name: CreateUserDeleteRequest :exec
@@ -21,15 +21,15 @@ VALUES ($1, $2, $3, $4, $5)
 `
 
 type CreateUserDeleteRequestParams struct {
-	UserID        uuid.UUID          `json:"user_id"`
-	Email         string             `json:"email"`
-	RecoveryToken string             `json:"recovery_token"`
-	ExpiresAt     time.Time          `json:"expires_at"`
-	CompletedAt   pgtype.Timestamptz `json:"completed_at"`
+	UserID        uuid.UUID    `json:"user_id"`
+	Email         string       `json:"email"`
+	RecoveryToken string       `json:"recovery_token"`
+	ExpiresAt     time.Time    `json:"expires_at"`
+	CompletedAt   sql.NullTime `json:"completed_at"`
 }
 
 func (q *Queries) CreateUserDeleteRequest(ctx context.Context, arg CreateUserDeleteRequestParams) error {
-	_, err := q.db.Exec(ctx, createUserDeleteRequest,
+	_, err := q.db.ExecContext(ctx, createUserDeleteRequest,
 		arg.UserID,
 		arg.Email,
 		arg.RecoveryToken,
@@ -44,7 +44,7 @@ SELECT id, user_id, email, used, recovery_token, requested_at, expires_at, compl
 `
 
 func (q *Queries) GetUserFromDeleteReqByToken(ctx context.Context, recoveryToken string) (AccountRecoveryRequest, error) {
-	row := q.db.QueryRow(ctx, getUserFromDeleteReqByToken, recoveryToken)
+	row := q.db.QueryRowContext(ctx, getUserFromDeleteReqByToken, recoveryToken)
 	var i AccountRecoveryRequest
 	err := row.Scan(
 		&i.ID,
@@ -64,6 +64,6 @@ UPDATE account_recovery_requests SET used = true, completed_at = now() WHERE rec
 `
 
 func (q *Queries) MarkDeleteAsUsedByToken(ctx context.Context, recoveryToken string) error {
-	_, err := q.db.Exec(ctx, markDeleteAsUsedByToken, recoveryToken)
+	_, err := q.db.ExecContext(ctx, markDeleteAsUsedByToken, recoveryToken)
 	return err
 }

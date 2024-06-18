@@ -6,9 +6,9 @@ package sqlc
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Querier interface {
@@ -36,15 +36,15 @@ type Querier interface {
 	GetSessionsByRefreshToken(ctx context.Context, refreshToken string) (Session, error)
 	GetSessionsByUserID(ctx context.Context, userID uuid.UUID) ([]Session, error)
 	GetUidsFromUsername(ctx context.Context, dollar_1 []string) ([]uuid.UUID, error)
-	GetUserAndRoleByIdentifier(ctx context.Context, username pgtype.Text) (GetUserAndRoleByIdentifierRow, error)
+	GetUserAndRoleByIdentifier(ctx context.Context, username sql.NullString) (GetUserAndRoleByIdentifierRow, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (Authentication, error)
 	GetUserByIdentifier(ctx context.Context, email string) (Authentication, error)
-	GetUserByUsername(ctx context.Context, username pgtype.Text) (uuid.UUID, error)
+	GetUserByUsername(ctx context.Context, username sql.NullString) (uuid.UUID, error)
 	GetUserFromDeleteReqByToken(ctx context.Context, recoveryToken string) (AccountRecoveryRequest, error)
-	GetUserIDsFromUsernames(ctx context.Context, username pgtype.Text) ([]uuid.UUID, error)
+	GetUserIDsFromUsernames(ctx context.Context, username sql.NullString) ([]uuid.UUID, error)
 	// Get user logins by user ID
 	GetUserLoginsByUserID(ctx context.Context, userID uuid.UUID) ([]UserLogin, error)
-	GetUserProfile(ctx context.Context, username pgtype.Text) (GetUserProfileRow, error)
+	GetUserProfile(ctx context.Context, username sql.NullString) (GetUserProfileRow, error)
 	GetUserProfileByUID(ctx context.Context, userID uuid.UUID) (User, error)
 	MarkDeleteAsUsedByToken(ctx context.Context, recoveryToken string) error
 	RevokeSessionById(ctx context.Context, userID uuid.UUID) error

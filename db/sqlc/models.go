@@ -5,64 +5,64 @@
 package sqlc
 
 import (
-	"net/netip"
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/sqlc-dev/pqtype"
 )
 
 type AccountRecoveryRequest struct {
-	ID            int32              `json:"id"`
-	UserID        uuid.UUID          `json:"user_id"`
-	Email         string             `json:"email"`
-	Used          pgtype.Bool        `json:"used"`
-	RecoveryToken string             `json:"recovery_token"`
-	RequestedAt   pgtype.Timestamptz `json:"requested_at"`
-	ExpiresAt     time.Time          `json:"expires_at"`
-	CompletedAt   pgtype.Timestamptz `json:"completed_at"`
+	ID            int32        `json:"id"`
+	UserID        uuid.UUID    `json:"user_id"`
+	Email         string       `json:"email"`
+	Used          sql.NullBool `json:"used"`
+	RecoveryToken string       `json:"recovery_token"`
+	RequestedAt   sql.NullTime `json:"requested_at"`
+	ExpiresAt     time.Time    `json:"expires_at"`
+	CompletedAt   sql.NullTime `json:"completed_at"`
 }
 
 type Authentication struct {
-	ID                  uuid.UUID          `json:"id"`
-	Email               string             `json:"email"`
-	Phone               pgtype.Text        `json:"phone"`
-	Username            pgtype.Text        `json:"username"`
-	PasswordHash        string             `json:"password_hash"`
-	CreatedAt           pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt           pgtype.Timestamptz `json:"updated_at"`
-	IsSuspended         pgtype.Bool        `json:"is_suspended"`
-	IsDeleted           pgtype.Bool        `json:"is_deleted"`
-	IsVerified          pgtype.Bool        `json:"is_verified"`
-	IsEmailVerified     pgtype.Bool        `json:"is_email_verified"`
-	DeletedAt           pgtype.Timestamptz `json:"deleted_at"`
-	VerifiedAt          pgtype.Timestamptz `json:"verified_at"`
-	SuspendedAt         pgtype.Timestamptz `json:"suspended_at"`
-	LoginAttempts       pgtype.Int4        `json:"login_attempts"`
-	PasswordLastChanged pgtype.Timestamptz `json:"password_last_changed"`
-	LockoutDuration     pgtype.Int4        `json:"lockout_duration"`
-	LockoutUntil        pgtype.Timestamptz `json:"lockout_until"`
-	IsMfaEnabled        pgtype.Bool        `json:"is_mfa_enabled"`
+	ID                  uuid.UUID      `json:"id"`
+	Email               string         `json:"email"`
+	Phone               sql.NullString `json:"phone"`
+	Username            sql.NullString `json:"username"`
+	PasswordHash        string         `json:"password_hash"`
+	CreatedAt           sql.NullTime   `json:"created_at"`
+	UpdatedAt           sql.NullTime   `json:"updated_at"`
+	IsSuspended         sql.NullBool   `json:"is_suspended"`
+	IsDeleted           sql.NullBool   `json:"is_deleted"`
+	IsVerified          sql.NullBool   `json:"is_verified"`
+	IsEmailVerified     sql.NullBool   `json:"is_email_verified"`
+	DeletedAt           sql.NullTime   `json:"deleted_at"`
+	VerifiedAt          sql.NullTime   `json:"verified_at"`
+	SuspendedAt         sql.NullTime   `json:"suspended_at"`
+	LoginAttempts       sql.NullInt32  `json:"login_attempts"`
+	PasswordLastChanged sql.NullTime   `json:"password_last_changed"`
+	LockoutDuration     sql.NullInt32  `json:"lockout_duration"`
+	LockoutUntil        sql.NullTime   `json:"lockout_until"`
+	IsMfaEnabled        sql.NullBool   `json:"is_mfa_enabled"`
 }
 
 type EmailVerificationRequest struct {
-	ID         int64              `json:"id"`
-	UserID     uuid.UUID          `json:"user_id"`
-	Email      string             `json:"email"`
-	Token      string             `json:"token"`
-	IsVerified pgtype.Bool        `json:"is_verified"`
-	CreatedAt  pgtype.Timestamptz `json:"created_at"`
-	ExpiresAt  time.Time          `json:"expires_at"`
+	ID         int64        `json:"id"`
+	UserID     uuid.UUID    `json:"user_id"`
+	Email      string       `json:"email"`
+	Token      string       `json:"token"`
+	IsVerified sql.NullBool `json:"is_verified"`
+	CreatedAt  sql.NullTime `json:"created_at"`
+	ExpiresAt  time.Time    `json:"expires_at"`
 }
 
 type PasswordResetRequest struct {
-	ID        int32              `json:"id"`
-	UserID    uuid.UUID          `json:"user_id"`
-	Email     string             `json:"email"`
-	Token     string             `json:"token"`
-	Used      pgtype.Bool        `json:"used"`
-	CreatedAt pgtype.Timestamptz `json:"created_at"`
-	ExpiresAt time.Time          `json:"expires_at"`
+	ID        int32        `json:"id"`
+	UserID    uuid.UUID    `json:"user_id"`
+	Email     string       `json:"email"`
+	Token     string       `json:"token"`
+	Used      sql.NullBool `json:"used"`
+	CreatedAt sql.NullTime `json:"created_at"`
+	ExpiresAt time.Time    `json:"expires_at"`
 }
 
 type Role struct {
@@ -71,55 +71,55 @@ type Role struct {
 }
 
 type Session struct {
-	ID              uuid.UUID          `json:"id"`
-	UserID          uuid.UUID          `json:"user_id"`
-	RefreshToken    string             `json:"refresh_token"`
-	RefreshTokenExp time.Time          `json:"refresh_token_exp"`
-	CreatedAt       pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
-	InvalidatedAt   pgtype.Timestamptz `json:"invalidated_at"`
-	LastActiveAt    pgtype.Timestamptz `json:"last_active_at"`
-	BlockedAt       pgtype.Timestamptz `json:"blocked_at"`
-	UserAgent       string             `json:"user_agent"`
-	IpAddress       netip.Addr         `json:"ip_address"`
-	FcmToken        pgtype.Text        `json:"fcm_token"`
+	ID              uuid.UUID      `json:"id"`
+	UserID          uuid.UUID      `json:"user_id"`
+	RefreshToken    string         `json:"refresh_token"`
+	RefreshTokenExp time.Time      `json:"refresh_token_exp"`
+	CreatedAt       sql.NullTime   `json:"created_at"`
+	UpdatedAt       sql.NullTime   `json:"updated_at"`
+	InvalidatedAt   sql.NullTime   `json:"invalidated_at"`
+	LastActiveAt    sql.NullTime   `json:"last_active_at"`
+	BlockedAt       sql.NullTime   `json:"blocked_at"`
+	UserAgent       string         `json:"user_agent"`
+	IpAddress       pqtype.Inet    `json:"ip_address"`
+	FcmToken        sql.NullString `json:"fcm_token"`
 }
 
 type TwoFactorBackupCode struct {
-	ID     int32       `json:"id"`
-	UserID uuid.UUID   `json:"user_id"`
-	Code   string      `json:"code"`
-	Used   pgtype.Bool `json:"used"`
+	ID     int32        `json:"id"`
+	UserID uuid.UUID    `json:"user_id"`
+	Code   string       `json:"code"`
+	Used   sql.NullBool `json:"used"`
 }
 
 type TwoFactorRevocation struct {
-	ID               int32              `json:"id"`
-	UserID           uuid.UUID          `json:"user_id"`
-	RevokedAt        pgtype.Timestamptz `json:"revoked_at"`
-	RevocationReason pgtype.Text        `json:"revocation_reason"`
+	ID               int32          `json:"id"`
+	UserID           uuid.UUID      `json:"user_id"`
+	RevokedAt        sql.NullTime   `json:"revoked_at"`
+	RevocationReason sql.NullString `json:"revocation_reason"`
 }
 
 type TwoFactorSecret struct {
-	ID        int32       `json:"id"`
-	UserID    uuid.UUID   `json:"user_id"`
-	SecretKey string      `json:"secret_key"`
-	IsActive  pgtype.Bool `json:"is_active"`
+	ID        int32        `json:"id"`
+	UserID    uuid.UUID    `json:"user_id"`
+	SecretKey string       `json:"secret_key"`
+	IsActive  sql.NullBool `json:"is_active"`
 }
 
 type User struct {
-	ID        int32       `json:"id"`
-	UserID    uuid.UUID   `json:"user_id"`
-	FirstName pgtype.Text `json:"first_name"`
-	LastName  pgtype.Text `json:"last_name"`
-	ImageUrl  pgtype.Text `json:"image_url"`
+	ID        int32          `json:"id"`
+	UserID    uuid.UUID      `json:"user_id"`
+	FirstName sql.NullString `json:"first_name"`
+	LastName  sql.NullString `json:"last_name"`
+	ImageUrl  sql.NullString `json:"image_url"`
 }
 
 type UserLogin struct {
-	ID        int32              `json:"id"`
-	UserID    uuid.UUID          `json:"user_id"`
-	LoginAt   pgtype.Timestamptz `json:"login_at"`
-	IpAddress *netip.Addr        `json:"ip_address"`
-	UserAgent pgtype.Text        `json:"user_agent"`
+	ID        int32          `json:"id"`
+	UserID    uuid.UUID      `json:"user_id"`
+	LoginAt   sql.NullTime   `json:"login_at"`
+	IpAddress pqtype.Inet    `json:"ip_address"`
+	UserAgent sql.NullString `json:"user_agent"`
 }
 
 type UserRole struct {

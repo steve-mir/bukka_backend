@@ -2,18 +2,18 @@ package services
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/steve-mir/bukka_backend/constants"
 	"github.com/steve-mir/bukka_backend/db/sqlc"
 	"github.com/steve-mir/bukka_backend/token"
 	"github.com/steve-mir/bukka_backend/utils"
 	"github.com/steve-mir/bukka_backend/worker"
+	"golang.org/x/sync/errgroup"
 )
 
 type RegisterReq struct {
@@ -70,7 +70,7 @@ func CreateUserConcurrent(ctx context.Context, qtx *sqlc.Queries /*tx *sql.Tx,*/
 	params := sqlc.CreateUserParams{
 		ID:           uid,
 		Email:        email,
-		Username:     pgtype.Text{String: username, Valid: true},
+		Username:     sql.NullString{String: username, Valid: true},
 		PasswordHash: pwd,
 	}
 
@@ -88,7 +88,7 @@ func CreateUserConcurrent(ctx context.Context, qtx *sqlc.Queries /*tx *sql.Tx,*/
 	}, nil
 }
 
-func RunConcurrentUserCreationTasks(ctx context.Context, qtx *sqlc.Queries, tx pgx.Tx, config utils.Config, td worker.TaskDistributor,
+func RunSyncUserCreationTasks(ctx context.Context, qtx *sqlc.Queries, tx *sql.Tx, config utils.Config, td worker.TaskDistributor,
 	req RegisterReq, uid uuid.UUID, clientIP string, agent string) (string, time.Time, error) {
 
 	type result struct {
@@ -100,7 +100,7 @@ func RunConcurrentUserCreationTasks(ctx context.Context, qtx *sqlc.Queries, tx p
 	// Create access token
 	accessToken, accessPayload, err := tokenService.CreateAccessToken(req.Email, req.Username, "", true, false, uid, constants.RegularUsers, clientIP, agent)
 	if err != nil {
-		tx.Rollback(ctx)
+		tx.Rollback()
 		return "", time.Time{}, errors.New("unknown error")
 	}
 
@@ -113,8 +113,8 @@ func RunConcurrentUserCreationTasks(ctx context.Context, qtx *sqlc.Queries, tx p
 	go func() {
 		profileErr := qtx.CreateUserProfile(ctx, sqlc.CreateUserProfileParams{
 			UserID:    uid,
-			FirstName: pgtype.Text{String: req.FullName, Valid: true},
-			LastName:  pgtype.Text{String: req.FullName, Valid: true},
+			FirstName: sql.NullString{String: req.FullName, Valid: true},
+			LastName:  sql.NullString{String: req.FullName, Valid: true},
 		})
 		profileCh <- result{err: profileErr}
 		close(profileCh)
@@ -123,7 +123,7 @@ func RunConcurrentUserCreationTasks(ctx context.Context, qtx *sqlc.Queries, tx p
 	// Wait for user profile creation to complete
 	profileResult := <-profileCh
 	if profileResult.err != nil {
-		tx.Rollback(ctx)
+		tx.Rollback()
 		return "", time.Time{}, fmt.Errorf("an unknown error occurred creating profile %v", profileResult.err)
 	}
 
@@ -140,7 +140,7 @@ func RunConcurrentUserCreationTasks(ctx context.Context, qtx *sqlc.Queries, tx p
 	// Wait for user role creation to complete
 	roleResult := <-roleCh
 	if roleResult.err != nil {
-		tx.Rollback(ctx)
+		tx.Rollback()
 		return "", time.Time{}, errors.New("error cannot proceed")
 	}
 
@@ -154,8 +154,74 @@ func RunConcurrentUserCreationTasks(ctx context.Context, qtx *sqlc.Queries, tx p
 	// Wait for email sending to complete
 	emailResult := <-emailCh
 	if emailResult.err != nil {
-		tx.Rollback(ctx)
+		tx.Rollback()
 		return "", time.Time{}, errors.New("unable to resend email " + emailResult.err.Error())
+	}
+
+	return accessToken, accessPayload.Expires, nil
+}
+
+func RunConcurrentUserCreationTasks(ctx context.Context, qtx *sqlc.Queries, tx *sql.Tx, config utils.Config, td worker.TaskDistributor,
+	req RegisterReq, uid uuid.UUID, clientIP string, agent string) (string, time.Time, error) {
+
+	tokenService := NewTokenService(config)
+	var accessToken string
+	var accessPayload *token.Payload
+	var err error
+
+	var eg errgroup.Group
+
+	// Create access token
+	eg.Go(func() error {
+		accessToken, accessPayload, err = tokenService.CreateAccessToken(req.Email, req.Username, "", true, false, uid, constants.RegularUsers, clientIP, agent)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	// Create user profile
+	eg.Go(func() error {
+		err = qtx.CreateUserProfile(ctx, sqlc.CreateUserProfileParams{
+			UserID:    uid,
+			FirstName: sql.NullString{String: req.FullName, Valid: true},
+			LastName:  sql.NullString{String: req.FullName, Valid: true},
+		})
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	// Create user role
+	eg.Go(func() error {
+		_, err = qtx.CreateUserRole(ctx, sqlc.CreateUserRoleParams{
+			UserID: uid,
+			RoleID: constants.RegularUsers,
+		})
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	// Send verification email concurrently (does not need to be within transaction)
+	eg.Go(func() error {
+		err = SendVerificationEmail(qtx, ctx, td, uid, req.Email)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	// Wait for both goroutines to complete
+	if err := eg.Wait(); err != nil {
+		tx.Rollback()
+		return "", time.Time{}, errors.New("error registering " + err.Error())
 	}
 
 	return accessToken, accessPayload.Expires, nil
@@ -165,7 +231,7 @@ func RunConcurrentUserCreationTasks(ctx context.Context, qtx *sqlc.Queries, tx p
 func checkEmailExistsError(ctx context.Context, qtx *sqlc.Queries, email string) error {
 	// Check duplicate emails
 	user, err := qtx.GetUserByIdentifier(ctx, email)
-	if err != nil && err != pgx.ErrNoRows {
+	if err != nil && err != sql.ErrNoRows {
 		// An error occurred that isn't simply indicating no rows were found
 		return err
 	}
@@ -201,7 +267,7 @@ func appendTimestampToEmail(ctx context.Context, qtx *sqlc.Queries, email string
 	newEmail := addDeleteTimeToEmail(email, deletedAt)
 
 	_, err := qtx.UpdateUser(ctx, sqlc.UpdateUserParams{
-		Email: pgtype.Text{String: newEmail, Valid: true},
+		Email: sql.NullString{String: newEmail, Valid: true},
 	})
 	if err != nil {
 		return err

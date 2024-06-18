@@ -1,11 +1,11 @@
 package sqlc
 
 import (
-	"context"
 	"os"
 	"testing"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	// "github.com/jackc/pgx/v5/pgxpool"
+	_ "github.com/lib/pq"
 	"github.com/rs/zerolog/log"
 	"github.com/steve-mir/bukka_backend/utils"
 )
@@ -18,12 +18,13 @@ func TestMain(m *testing.M) {
 		log.Fatal().Msg("cannot load config " + err.Error())
 	}
 
-	connPool, err := pgxpool.New(context.Background(), config.DBSource)
+	// connPool, err := pgxpool.New(context.Background(), config.DBSource)
+	db, err := CreateDbPool(config)
 	if err != nil {
 		log.Fatal().Err(err).Msg("cannot connect to db")
 	}
 
-	testStore = NewStore(connPool)
+	testStore = NewStore(db)
 
 	os.Exit(m.Run())
 }

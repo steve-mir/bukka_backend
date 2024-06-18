@@ -1,6 +1,7 @@
 {
     "cSpell.words": [
         "Bukka",
+        "errgroup",
         "Msgf",
         "pgtype",
         "pgxpool",

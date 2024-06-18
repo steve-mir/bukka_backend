@@ -1,10 +1,11 @@
 package api
 
 import (
+	"database/sql"
+
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
-	"github.com/jackc/pgx/v5/pgxpool"
 	db "github.com/steve-mir/bukka_backend/db/sqlc"
 	"github.com/steve-mir/bukka_backend/internal/app/auth/middlewares"
 	"github.com/steve-mir/bukka_backend/utils"
@@ -18,13 +19,13 @@ const (
 type Server struct {
 	store           db.Store
 	router          *gin.Engine
-	connPool        *pgxpool.Pool
+	db              *sql.DB
 	config          utils.Config
 	taskDistributor worker.TaskDistributor
 }
 
-func NewServer(store db.Store, connPool *pgxpool.Pool, config utils.Config, td worker.TaskDistributor) *Server {
-	server := &Server{store: store, connPool: connPool, config: config, taskDistributor: td}
+func NewServer(store db.Store, db *sql.DB, config utils.Config, td worker.TaskDistributor) *Server {
+	server := &Server{store: store, db: db, config: config, taskDistributor: td}
 
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		v.RegisterValidation("emailValidator", utils.ValidEmail)

@@ -49,14 +49,11 @@ func RotateUserToken(req RotateTokenReq, store sqlc.Store, ctx context.Context, 
 		return AuthTokenResp{}, errors.New("session blocked")
 	}
 
-	ip, err := utils.GetIpAddr(clientIP)
-	if err != nil {
-		return AuthTokenResp{}, fmt.Errorf("error getting ip address %s", err)
-	}
+	// ip := utils.GetIpAddr(clientIP)
 
 	authToken, err := NewTokenService(config).
 		RotateToken(session.Email, session.Username.String, session.Phone.String, true, session.IsEmailVerified.Bool, payload.Subject,
-			int8(session.RoleID.Int32), session.ID, ip.String(), agent, config, store)
+			int8(session.RoleID.Int32), session.ID, clientIP, agent, config, store)
 
 	if err != nil {
 		return AuthTokenResp{}, fmt.Errorf("could not rotate token: %v", err)
