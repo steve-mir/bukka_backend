@@ -385,7 +385,7 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (Authent
 const updateUserPassword = `-- name: UpdateUserPassword :exec
 UPDATE authentications
 SET password_hash = $2, password_last_changed = now()
-WHERE id = $1 OR email = $1
+WHERE id = $1
 `
 
 type UpdateUserPasswordParams struct {
@@ -395,5 +395,21 @@ type UpdateUserPasswordParams struct {
 
 func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error {
 	_, err := q.db.ExecContext(ctx, updateUserPassword, arg.ID, arg.PasswordHash)
+	return err
+}
+
+const updateUserPasswordByEmail = `-- name: UpdateUserPasswordByEmail :exec
+UPDATE authentications
+SET password_hash = $2, password_last_changed = now()
+WHERE email = $1
+`
+
+type UpdateUserPasswordByEmailParams struct {
+	Email        string `json:"email"`
+	PasswordHash string `json:"password_hash"`
+}
+
+func (q *Queries) UpdateUserPasswordByEmail(ctx context.Context, arg UpdateUserPasswordByEmailParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserPasswordByEmail, arg.Email, arg.PasswordHash)
 	return err
 }

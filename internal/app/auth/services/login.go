@@ -65,9 +65,6 @@ func LogUserIn(req LoginReq, store sqlc.Store, ctx context.Context, config utils
 	}
 
 	ip := utils.GetIpAddr(clientIP)
-	if err != nil {
-		return UserAuthRes{}, fmt.Errorf("error getting ip address %s", err)
-	}
 
 	_, err = store.CreateSession(ctx, sqlc.CreateSessionParams{
 		ID:              sessionID,

@@ -113,7 +113,6 @@ func AccRecoveryRequest(ctx context.Context, store sqlc.Store, td worker.TaskDis
 	return nil
 }
 
-// TODO: Fix go routines (Consider using lib/pq)
 func AccountRecovery(ctx context.Context, db *sql.DB, store sqlc.Store, recoveryToken string) error {
 
 	// Retrieve the user and recovery token information from the database

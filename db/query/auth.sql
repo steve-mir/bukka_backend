@@ -47,7 +47,12 @@ RETURNING *;
 -- name: UpdateUserPassword :exec
 UPDATE authentications
 SET password_hash = $2, password_last_changed = now()
-WHERE id = $1 OR email = $1;
+WHERE id = $1;
+
+-- name: UpdateUserPasswordByEmail :exec
+UPDATE authentications
+SET password_hash = $2, password_last_changed = now()
+WHERE email = $1;
 
 -- name: DeleteUserByID :exec
 DELETE FROM authentications WHERE id = $1;

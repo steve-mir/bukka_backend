@@ -17,6 +17,7 @@ type Querier interface {
 	CheckUsername(ctx context.Context, lower string) (int64, error)
 	CleanupVerifiedAndExpiredRequests(ctx context.Context) error
 	CreateEmailVerificationRequest(ctx context.Context, arg CreateEmailVerificationRequestParams) error
+	CreatePasswordResetRequest(ctx context.Context, arg CreatePasswordResetRequestParams) error
 	// Create a new session
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (Authentication, error)
@@ -25,12 +26,16 @@ type Querier interface {
 	CreateUserLogin(ctx context.Context, arg CreateUserLoginParams) (UserLogin, error)
 	CreateUserProfile(ctx context.Context, arg CreateUserProfileParams) error
 	CreateUserRole(ctx context.Context, arg CreateUserRoleParams) (UserRole, error)
+	DeletePasswordResetRequestByID(ctx context.Context, id int32) error
+	DeletePasswordResetRequestsByEmail(ctx context.Context, email string) error
 	DeleteSession(ctx context.Context, id uuid.UUID) error
 	DeleteUserByID(ctx context.Context, id uuid.UUID) error
 	// Delete a user login
 	DeleteUserLogin(ctx context.Context, id int32) error
 	DeleteUserProfileByID(ctx context.Context, userID uuid.UUID) error
 	GetEmailVerificationRequestByToken(ctx context.Context, token string) (EmailVerificationRequest, error)
+	GetPasswordResetRequestByID(ctx context.Context, id int32) (PasswordResetRequest, error)
+	GetPasswordResetRequestByToken(ctx context.Context, token string) (PasswordResetRequest, error)
 	GetSessionAndUserByRefreshToken(ctx context.Context, refreshToken string) (GetSessionAndUserByRefreshTokenRow, error)
 	GetSessionsByID(ctx context.Context, id uuid.UUID) (Session, error)
 	GetSessionsByRefreshToken(ctx context.Context, refreshToken string) (Session, error)
@@ -51,10 +56,13 @@ type Querier interface {
 	RotateSessionTokens(ctx context.Context, arg RotateSessionTokensParams) error
 	UpdateEmailVerificationRequest(ctx context.Context, arg UpdateEmailVerificationRequestParams) (EmailVerificationRequest, error)
 	UpdateImgUserProfile(ctx context.Context, arg UpdateImgUserProfileParams) error
+	UpdatePasswordResetRequest(ctx context.Context, arg UpdatePasswordResetRequestParams) error
+	UpdatePasswordResetRequestByToken(ctx context.Context, arg UpdatePasswordResetRequestByTokenParams) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (Authentication, error)
 	// Update a user login
 	UpdateUserLogin(ctx context.Context, arg UpdateUserLoginParams) (UserLogin, error)
 	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error
+	UpdateUserPasswordByEmail(ctx context.Context, arg UpdateUserPasswordByEmailParams) error
 }
 
 var _ Querier = (*Queries)(nil)

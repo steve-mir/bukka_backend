@@ -7,4 +7,5 @@ const (
 	InvalidPhone    = "invalid phone format"
 	InvalidPassword = "invalid password format. Password must contain at least 1 lowercase, 1 uppercase, 1 special character and 1 digit"
 	InvalidUsername = "invalid username. Username must be between 4 and 30 characters, it can also contain numbers and underscore"
+	ResetMsg        = "if an account exists a password reset email will be sent to you"
 )

@@ -52,10 +52,10 @@ func (server *Server) setupRouter() {
 	authRoutes.DELETE(baseUrl+"delete_account", server.deleteAccount)
 	router.POST(baseUrl+"request_account_recovery", server.requestAccountRecovery)
 	router.GET(baseUrl+"recover_account", server.completeAccountRecovery)
+	authRoutes.POST(baseUrl+"change_password", server.changePwd)
+	router.POST(baseUrl+"forgot_password", server.forgotPwd)
+	router.POST(baseUrl+"reset_password", server.resetPwd)
 
-	// router.POST(baseUrl+"change_password", server.register)
-	// router.POST(baseUrl+"request_reset_password", server.register)
-	// router.POST(baseUrl+"reset_password", server.register)
 	// router.POST(baseUrl+"initiate_change_email", server.register)
 	// router.POST(baseUrl+"confirm_change_email", server.register)
 	// router.POST(baseUrl+"initiate_change_phone", server.register)

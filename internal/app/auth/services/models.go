@@ -25,6 +25,16 @@ type AccountRecoveryReq struct {
 	Email string `json:"email" binding:"required,emailValidator"`
 }
 
+type ChangePwdReq struct {
+	OldPassword string `json:"old_password" binding:"required,passwordValidator"`
+	NewPassword string `json:"new_password" binding:"required,passwordValidator"`
+}
+
+type ResetPwdReq struct {
+	Token       string `json:"token" binding:"required"` // TODO: Add validation for token
+	NewPassword string `json:"new_password" binding:"required,passwordValidator"`
+}
+
 // Responses
 type AuthTokenResp struct {
 	AccessToken           string    `json:"access_token"`
