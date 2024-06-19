@@ -2,6 +2,7 @@ package api
 
 import (
 	"database/sql"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
@@ -10,6 +11,7 @@ import (
 	"github.com/steve-mir/bukka_backend/internal/app/auth/middlewares"
 	"github.com/steve-mir/bukka_backend/utils"
 	"github.com/steve-mir/bukka_backend/worker"
+	"golang.org/x/time/rate"
 )
 
 const (
@@ -41,6 +43,14 @@ func NewServer(store db.Store, db *sql.DB, config utils.Config, td worker.TaskDi
 func (server *Server) setupRouter() {
 	router := gin.Default()
 
+	// rl := middlewares.NewRateLimiterLb(2, 1)
+	// router.Use(middlewares.RateLimitMiddleware(rl))
+	// go rl.CleanupOldBuckets(1 * time.Minute) // Adjust the interval as needed
+
+	// rl := middlewares.NewRateLimiter()
+	rl := setupRateLimiter()
+	router.Use(middlewares.RateLimit(rl))
+
 	router.POST(baseUrl+"register", server.register)
 	router.POST(baseUrl+"login", server.login)
 	router.POST(baseUrl+"rotate_token", server.rotateToken)
@@ -55,6 +65,7 @@ func (server *Server) setupRouter() {
 	authRoutes.POST(baseUrl+"change_password", server.changePwd)
 	router.POST(baseUrl+"forgot_password", server.forgotPwd)
 	router.POST(baseUrl+"reset_password", server.resetPwd)
+	router.GET(baseUrl+"home", server.home)
 
 	// router.POST(baseUrl+"initiate_change_email", server.register)
 	// router.POST(baseUrl+"confirm_change_email", server.register)
@@ -70,6 +81,24 @@ func (server *Server) setupRouter() {
 	// router.POST(baseUrl+"bypass_mfa", server.register)
 
 	server.Router = router
+}
+
+func setupRateLimiter() *middlewares.RateLimiter {
+	rl := middlewares.NewRateLimiter()
+
+	rl.SetRateLimitConfig("/register", middlewares.RateLimitConfig{Rate: rate.Every(10 * time.Second), Burst: 2})
+	rl.SetRateLimitConfig("/login", middlewares.RateLimitConfig{Rate: rate.Every(5 * time.Second), Burst: 3})
+	rl.SetRateLimitConfig("/rotate_token", middlewares.RateLimitConfig{Rate: rate.Every(1 * time.Minute), Burst: 1})
+	rl.SetRateLimitConfig("/verify_email", middlewares.RateLimitConfig{Rate: rate.Every(1 * time.Minute), Burst: 1})
+	rl.SetRateLimitConfig("/resend_verification", middlewares.RateLimitConfig{Rate: rate.Every(1 * time.Minute), Burst: 1})
+	rl.SetRateLimitConfig("/delete_account", middlewares.RateLimitConfig{Rate: rate.Every(1 * time.Minute), Burst: 1})
+	rl.SetRateLimitConfig("/request_account_recovery", middlewares.RateLimitConfig{Rate: rate.Every(1 * time.Minute), Burst: 1})
+	rl.SetRateLimitConfig("/recover_account", middlewares.RateLimitConfig{Rate: rate.Every(1 * time.Minute), Burst: 1})
+	rl.SetRateLimitConfig("/change_password", middlewares.RateLimitConfig{Rate: rate.Every(1 * time.Minute), Burst: 1})
+	rl.SetRateLimitConfig("/forgot_password", middlewares.RateLimitConfig{Rate: rate.Every(1 * time.Minute), Burst: 1})
+	rl.SetRateLimitConfig("/reset_password", middlewares.RateLimitConfig{Rate: rate.Every(1 * time.Minute), Burst: 1})
+
+	return rl
 }
 
 // Start runs the HTTP server on a specifix address
