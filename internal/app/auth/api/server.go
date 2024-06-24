@@ -9,6 +9,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	db "github.com/steve-mir/bukka_backend/db/sqlc"
 	"github.com/steve-mir/bukka_backend/internal/app/auth/middlewares"
+	"github.com/steve-mir/bukka_backend/internal/cache"
 	"github.com/steve-mir/bukka_backend/utils"
 	"github.com/steve-mir/bukka_backend/worker"
 	"golang.org/x/time/rate"
@@ -24,10 +25,12 @@ type Server struct {
 	db              *sql.DB
 	config          utils.Config
 	taskDistributor worker.TaskDistributor
+	cache           *cache.Cache
 }
 
 func NewServer(store db.Store, db *sql.DB, config utils.Config, td worker.TaskDistributor) *Server {
-	server := &Server{store: store, db: db, config: config, taskDistributor: td}
+	cache := cache.NewCache("0.0.0.0:6379", "default", "", 0) // ! Remove
+	server := &Server{store: store, db: db, config: config, taskDistributor: td, cache: cache}
 
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		v.RegisterValidation("emailValidator", utils.ValidEmail)
@@ -65,6 +68,9 @@ func (server *Server) setupRouter() {
 	authRoutes.POST(baseUrl+"change_password", server.changePwd)
 	router.POST(baseUrl+"forgot_password", server.forgotPwd)
 	router.POST(baseUrl+"reset_password", server.resetPwd)
+	// authRoutes.GET(baseUrl+"profile", server.viewProfile)
+	// authRoutes.PATCH(baseUrl+"profile", server.updateProfile)
+	authRoutes.GET(baseUrl+"logout", server.logout)
 	router.GET(baseUrl+"home", server.home)
 
 	// router.POST(baseUrl+"initiate_change_email", server.register)

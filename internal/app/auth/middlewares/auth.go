@@ -3,16 +3,18 @@ package middlewares
 import (
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/steve-mir/bukka_backend/internal/cache"
 	"github.com/steve-mir/bukka_backend/token"
 	"github.com/steve-mir/bukka_backend/utils"
 )
 
 const (
-	authorizationHeaderKey  = "authorization"
+	AuthorizationHeaderKey  = "authorization"
 	authorizationTypeBearer = "bearer"
 )
 
@@ -22,7 +24,7 @@ var (
 
 func AuthMiddlerWare(config utils.Config) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		authorizationHeader := ctx.GetHeader(authorizationHeaderKey)
+		authorizationHeader := ctx.GetHeader(AuthorizationHeaderKey)
 		if len(authorizationHeader) == 0 {
 			err := errors.New("authorization header is not provided")
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
@@ -44,7 +46,7 @@ func AuthMiddlerWare(config utils.Config) gin.HandlerFunc {
 		}
 
 		accessToken := fields[1]
-		tokenMaker, err := token.NewPasetoMaker(utils.GetKeyForToken(config, false))
+		tokenMaker, err := token.NewPasetoMaker(utils.GetKeyForToken(config, false), cache.NewCache(config.RedisAddress, config.RedisUsername, config.RedisPwd, 0))
 		if err != nil {
 			err := fmt.Errorf("could not init tokenMaker %s", err)
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
@@ -65,6 +67,7 @@ func AuthMiddlerWare(config utils.Config) gin.HandlerFunc {
 		// 	return
 		// }
 
+		log.Println("Good to go")
 		ctx.Set(AuthorizationPayloadKey, payload)
 		ctx.Next()
 	}

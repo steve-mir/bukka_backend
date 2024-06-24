@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/steve-mir/bukka_backend/constants"
 	"github.com/steve-mir/bukka_backend/db/sqlc"
+	"github.com/steve-mir/bukka_backend/internal/cache"
 	"github.com/steve-mir/bukka_backend/token"
 	"github.com/steve-mir/bukka_backend/utils"
 	"github.com/steve-mir/bukka_backend/worker"
@@ -95,7 +96,7 @@ func RunSyncUserCreationTasks(ctx context.Context, qtx *sqlc.Queries, tx *sql.Tx
 		err error
 	}
 
-	tokenService := NewTokenService(config)
+	tokenService := NewTokenService(config, cache.NewCache(config.RedisAddress, config.RedisUsername, config.RedisPwd, 0))
 
 	// Create access token
 	accessToken, accessPayload, err := tokenService.CreateAccessToken(req.Email, req.Username, "", true, false, uid, constants.RegularUsers, clientIP, agent)
@@ -164,7 +165,7 @@ func RunSyncUserCreationTasks(ctx context.Context, qtx *sqlc.Queries, tx *sql.Tx
 func RunConcurrentUserCreationTasks(ctx context.Context, qtx *sqlc.Queries, tx *sql.Tx, config utils.Config, td worker.TaskDistributor,
 	req RegisterReq, uid uuid.UUID, clientIP string, agent string) (string, time.Time, error) {
 
-	tokenService := NewTokenService(config)
+	tokenService := NewTokenService(config, cache.NewCache(config.RedisAddress, config.RedisUsername, config.RedisPwd, 0))
 	var accessToken string
 	var accessPayload *token.Payload
 	var err error

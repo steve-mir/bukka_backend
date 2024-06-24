@@ -52,7 +52,7 @@ type Querier interface {
 	GetUserProfile(ctx context.Context, username sql.NullString) (GetUserProfileRow, error)
 	GetUserProfileByUID(ctx context.Context, userID uuid.UUID) (User, error)
 	MarkDeleteAsUsedByToken(ctx context.Context, recoveryToken string) error
-	RevokeSessionById(ctx context.Context, userID uuid.UUID) error
+	RevokeSessionById(ctx context.Context, id uuid.UUID) error
 	RotateSessionTokens(ctx context.Context, arg RotateSessionTokensParams) error
 	UpdateEmailVerificationRequest(ctx context.Context, arg UpdateEmailVerificationRequestParams) (EmailVerificationRequest, error)
 	UpdateImgUserProfile(ctx context.Context, arg UpdateImgUserProfileParams) error

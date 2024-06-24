@@ -7,18 +7,21 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/steve-mir/bukka_backend/db/sqlc"
+	"github.com/steve-mir/bukka_backend/internal/cache"
 	"github.com/steve-mir/bukka_backend/token"
 	"github.com/steve-mir/bukka_backend/utils"
 )
 
 type TokenService struct {
 	config utils.Config
+	cache  cache.Cache
 	// other dependencies as needed
 }
 
-func NewTokenService(config utils.Config) *TokenService {
+func NewTokenService(config utils.Config, cache *cache.Cache) *TokenService {
 	return &TokenService{
 		config: config,
+		cache:  *cache,
 	}
 }
 
@@ -43,7 +46,7 @@ func (t *TokenService) CreateAccessToken(email, username, phone string, mfaPasse
 ) (string, *token.Payload, error) {
 
 	// Create a Paseto token and include user data in the payload
-	maker, err := token.NewPasetoMaker(utils.GetKeyForToken(t.config, false))
+	maker, err := token.NewPasetoMaker(utils.GetKeyForToken(t.config, false), &t.cache)
 	if err != nil {
 		return "", &token.Payload{}, err
 	}
@@ -72,7 +75,7 @@ func (t *TokenService) CreateRefreshToken(userId uuid.UUID, sessionID uuid.UUID,
 ) (string, *token.Payload, error) {
 
 	// Create a Paseto token and include user data in the payload
-	maker, err := token.NewPasetoMaker(utils.GetKeyForToken(t.config, true))
+	maker, err := token.NewPasetoMaker(utils.GetKeyForToken(t.config, true), &t.cache)
 	if err != nil {
 		return "", &token.Payload{}, err
 	}

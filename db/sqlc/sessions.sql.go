@@ -230,11 +230,11 @@ func (q *Queries) GetSessionsByUserID(ctx context.Context, userID uuid.UUID) ([]
 }
 
 const revokeSessionById = `-- name: RevokeSessionById :exec
-UPDATE sessions SET invalidated_at = now() WHERE user_id = $1
+UPDATE "sessions" SET invalidated_at = now() WHERE id = $1
 `
 
-func (q *Queries) RevokeSessionById(ctx context.Context, userID uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, revokeSessionById, userID)
+func (q *Queries) RevokeSessionById(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, revokeSessionById, id)
 	return err
 }
 

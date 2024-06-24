@@ -33,7 +33,7 @@ SET
 WHERE "id" = $1;
 
 -- name: RevokeSessionById :exec
-UPDATE sessions SET invalidated_at = now() WHERE user_id = $1;
+UPDATE "sessions" SET invalidated_at = now() WHERE id = $1;
 
 -- name: BlockAllUserSession :exec
 UPDATE sessions SET blocked_at = now(), invalidated_at = now() WHERE user_id = $1;

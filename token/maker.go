@@ -12,5 +12,5 @@ type Maker interface {
 	VerifyToken(token string) (*Payload, error)
 
 	// Add a revoke endpoint
-	RevokeToken(token string) error
+	// RevokeToken(token string) error
 }

@@ -6,26 +6,33 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/steve-mir/bukka_backend/internal/cache"
 	"github.com/stretchr/testify/require"
 )
 
 func TestNewPasetoMaker(t *testing.T) {
+	cache := cache.NewCache("0.0.0.0:6379", "default", "", 0)
+
 	symmetricKey := "a_very_secret_key_with_sufficient_length"
-	maker, err := NewPasetoMaker(symmetricKey)
+	maker, err := NewPasetoMaker(symmetricKey, cache)
 	require.NoError(t, err)
 	require.NotNil(t, maker)
 }
 
 func TestNewPasetoMakerInvalidKey(t *testing.T) {
+	cache := cache.NewCache("0.0.0.0:6379", "default", "", 0)
+
 	symmetricKey := "short_key"
-	maker, err := NewPasetoMaker(symmetricKey)
+	maker, err := NewPasetoMaker(symmetricKey, cache)
 	require.Error(t, err)
 	require.Nil(t, maker)
 }
 
 func TestCreateToken(t *testing.T) {
+	cache := cache.NewCache("0.0.0.0:6379", "default", "", 0)
+
 	symmetricKey := "a_very_secret_key_with_sufficient_length"
-	maker, err := NewPasetoMaker(symmetricKey)
+	maker, err := NewPasetoMaker(symmetricKey, cache)
 	require.NoError(t, err)
 	require.NotNil(t, maker)
 
@@ -54,8 +61,9 @@ func TestCreateToken(t *testing.T) {
 }
 
 func TestVerifyToken(t *testing.T) {
+	cache := cache.NewCache("0.0.0.0:6379", "default", "", 0)
 	symmetricKey := "a_very_secret_key_with_sufficient_length"
-	maker, err := NewPasetoMaker(symmetricKey)
+	maker, err := NewPasetoMaker(symmetricKey, cache)
 	require.NoError(t, err)
 	require.NotNil(t, maker)
 
@@ -89,8 +97,9 @@ func TestVerifyToken(t *testing.T) {
 }
 
 func TestVerifyTokenExpired(t *testing.T) {
+	cache := cache.NewCache("0.0.0.0:6379", "default", "", 0)
 	symmetricKey := "a_very_secret_key_with_sufficient_length"
-	maker, err := NewPasetoMaker(symmetricKey)
+	maker, err := NewPasetoMaker(symmetricKey, cache)
 	require.NoError(t, err)
 	require.NotNil(t, maker)
 
@@ -161,8 +170,9 @@ func TestVerifyTokenExpired(t *testing.T) {
 */
 
 func TestVerifyTokenInvalidKey(t *testing.T) {
+	cache := cache.NewCache("0.0.0.0:6379", "default", "", 0)
 	symmetricKey := "a_very_secret_key_with_sufficient_length"
-	maker, err := NewPasetoMaker(symmetricKey)
+	maker, err := NewPasetoMaker(symmetricKey, cache)
 	require.NoError(t, err)
 	require.NotNil(t, maker)
 
@@ -190,7 +200,7 @@ func TestVerifyTokenInvalidKey(t *testing.T) {
 
 	// Create a new maker with a different key
 	invalidKey := "a_different_secret_key_with_sufficient_length"
-	invalidMaker, err := NewPasetoMaker(invalidKey)
+	invalidMaker, err := NewPasetoMaker(invalidKey, cache)
 	require.NoError(t, err)
 	require.NotNil(t, invalidMaker)
 

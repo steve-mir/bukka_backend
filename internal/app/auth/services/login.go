@@ -11,6 +11,7 @@ import (
 	"github.com/sqlc-dev/pqtype"
 	"github.com/steve-mir/bukka_backend/constants"
 	"github.com/steve-mir/bukka_backend/db/sqlc"
+	"github.com/steve-mir/bukka_backend/internal/cache"
 	"github.com/steve-mir/bukka_backend/utils"
 )
 
@@ -50,7 +51,7 @@ func LogUserIn(req LoginReq, store sqlc.Store, ctx context.Context, config utils
 		mfaPassed = true
 	}
 
-	tokenService := NewTokenService(config)
+	tokenService := NewTokenService(config, cache.NewCache(config.RedisAddress, config.RedisUsername, config.RedisPwd, 0))
 	// Refresh token
 	refreshToken, refreshPayload, err := tokenService.CreateRefreshToken(user.ID, sessionID, clientIP, agent)
 	if err != nil {

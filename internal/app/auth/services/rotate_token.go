@@ -6,10 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/steve-mir/bukka_backend/db/sqlc"
+	"github.com/steve-mir/bukka_backend/internal/cache"
 	"github.com/steve-mir/bukka_backend/token"
 	"github.com/steve-mir/bukka_backend/utils"
 )
@@ -19,7 +19,7 @@ type RotateTokenReq struct {
 }
 
 func RotateUserToken(req RotateTokenReq, store sqlc.Store, ctx context.Context, config utils.Config, clientIP, agent string) (AuthTokenResp, error) {
-	tokenMaker, err := token.NewPasetoMaker(config.RefreshTokenSymmetricKey)
+	tokenMaker, err := token.NewPasetoMaker(config.RefreshTokenSymmetricKey, cache.NewCache(config.RedisAddress, config.RedisUsername, config.RedisPwd, 0))
 	if err != nil {
 		return AuthTokenResp{}, fmt.Errorf("cannot create token maker: %v", err)
 	}
@@ -45,13 +45,16 @@ func RotateUserToken(req RotateTokenReq, store sqlc.Store, ctx context.Context, 
 		return AuthTokenResp{}, fmt.Errorf("failed to get session: %v", err)
 	}
 
-	if !session.BlockedAt.Time.IsZero() && (session.BlockedAt.Time.Before(time.Now()) || session.InvalidatedAt.Time.Before(time.Now())) {
+	if !session.BlockedAt.Time.IsZero() {
 		return AuthTokenResp{}, errors.New("session blocked")
+	}
+	if !session.InvalidatedAt.Time.IsZero() {
+		return AuthTokenResp{}, errors.New("user not logged in")
 	}
 
 	// ip := utils.GetIpAddr(clientIP)
 
-	authToken, err := NewTokenService(config).
+	authToken, err := NewTokenService(config, cache.NewCache(config.RedisAddress, config.RedisUsername, config.RedisPwd, 0)).
 		RotateToken(session.Email, session.Username.String, session.Phone.String, true, session.IsEmailVerified.Bool, payload.Subject,
 			int8(session.RoleID.Int32), session.ID, clientIP, agent, config, store)
 
