@@ -27,3 +27,5 @@ go.work.sum
 # air files
 .air.toml
 tmp/main
+
+.env
