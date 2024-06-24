@@ -27,7 +27,7 @@ func main() {
 	}
 
 	// Run db migrations
-	runDbMigration(config.MigrationUrl, config.DBSource)
+	// runDbMigration(config.MigrationUrl, config.DBSource)
 
 	// connPool, err := pgxpool.New(context.Background(), config.DBSource)
 	// if err != nil {
