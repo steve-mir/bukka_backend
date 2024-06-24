@@ -65,3 +65,11 @@ type VerifyEmailRes struct {
 type GenericRes struct {
 	Msg string `json:"msg"`
 }
+
+type HomeRes struct {
+	Msg       string `json:"msg"`
+	DbSource  string `json:"db_source"`
+	RedisAddr string `json:"redis_addr"`
+	RedisUser string `json:"redis_user"`
+	RedisPwd  string `json:"redis_pwd"`
+}

@@ -8,9 +8,14 @@ import (
 )
 
 func (s *Server) home(ctx *gin.Context) {
-
-	ctx.JSON(http.StatusOK, services.GenericRes{
-		Msg: "Welcome to Bukka homepage 😃 Auth service. Your account is safe with us",
-	})
+	ctx.JSON(http.StatusOK,
+		services.HomeRes{
+			Msg:       "Welcome to Bukka homepage 😃 Auth service. Your account is safe with us",
+			DbSource:  s.config.DBSource,
+			RedisAddr: s.config.RedisAddress,
+			RedisUser: s.config.RedisUsername,
+			RedisPwd:  s.config.RedisPwd,
+		},
+	)
 
 }
