@@ -32,7 +32,7 @@ type Server struct {
 }
 
 func NewServer(store db.Store, db *sql.DB, config utils.Config, td worker.TaskDistributor) *Server {
-	cache := cache.NewCache("0.0.0.0:6379", "default", "", 0) // ! Remove
+	cache := cache.NewCache(config.RedisAddress, config.RedisUsername, config.RedisPwd, 0) // ! Remove
 	oauthConfig := &oauth2.Config{
 		ClientID:     config.GoogleOauthClientId,
 		ClientSecret: config.GoogleOauthClientSecret,
