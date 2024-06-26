@@ -32,6 +32,9 @@ func LogUserIn(req LoginReq, store sqlc.Store, ctx context.Context, config utils
 		}
 		return UserAuthRes{}, errors.New(constants.LoginError)
 	}
+	if user.IsOauthUser.Bool {
+		return UserAuthRes{}, errors.New("wrong authentication method")
+	}
 
 	err = utils.CheckPassword(req.Password, user.PasswordHash)
 	if err != nil {
@@ -63,6 +66,91 @@ func LogUserIn(req LoginReq, store sqlc.Store, ctx context.Context, config utils
 		user.IsEmailVerified.Bool, user.ID, int8(user.RoleID), clientIP, agent)
 	if err != nil {
 		return UserAuthRes{}, fmt.Errorf("error creating access token %s", err)
+	}
+
+	ip := utils.GetIpAddr(clientIP)
+
+	_, err = store.CreateSession(ctx, sqlc.CreateSessionParams{
+		ID:              sessionID,
+		UserID:          user.ID,
+		RefreshToken:    refreshToken,
+		RefreshTokenExp: refreshPayload.Expires,
+		UserAgent:       agent,
+		IpAddress:       ip,
+		FcmToken:        sql.NullString{String: req.FcmToken, Valid: true},
+	})
+
+	if err != nil {
+		log.Println("Session ID Error", err)
+		return UserAuthRes{}, fmt.Errorf("error creating session id %s", err)
+	}
+
+	//! 3 User logged in successfully. Record it
+	err = recordLoginSuccess(ctx, store, user.ID, agent, ip)
+	if err != nil {
+		return UserAuthRes{}, fmt.Errorf("error creating login record %s", err)
+	}
+
+	// return resp
+	return UserAuthRes{
+		Uid:               user.ID,
+		IsEmailVerified:   user.IsEmailVerified.Bool,
+		Username:          user.Username.String,
+		Email:             user.Email,
+		IsDeleted:         user.IsDeleted.Bool,
+		IsSuspended:       user.IsSuspended.Bool,
+		IsMfaEnabled:      user.IsMfaEnabled.Bool,
+		ImageUrl:          user.ImageUrl.String,
+		CreatedAt:         user.CreatedAt.Time,
+		PasswordChangedAt: user.PasswordLastChanged.Time,
+		AuthTokenResp: AuthTokenResp{
+			AccessToken:           accessToken,
+			AccessTokenExpiresAt:  accessPayload.Expires,
+			RefreshToken:          refreshToken,
+			RefreshTokenExpiresAt: refreshPayload.Expires,
+		},
+	}, nil
+}
+
+func LogOAuthUserIn(req LoginReq, store sqlc.Store, ctx context.Context, config utils.Config, clientIP, agent string) (UserAuthRes, error) {
+	user, err := store.GetUserAndRoleByIdentifier(ctx, sql.NullString{String: req.Identifier, Valid: true})
+	if err != nil {
+		return UserAuthRes{}, errors.New(constants.LoginError)
+	}
+
+	// Check if the user is an OAuth user
+	if !user.IsOauthUser.Bool {
+		return UserAuthRes{}, errors.New("this account is not linked with OAuth")
+	}
+
+	// Check if user should gain access
+	err = checkAccountStat(user.IsSuspended.Bool, user.IsDeleted.Bool)
+	if err != nil {
+		return UserAuthRes{}, errors.New(constants.LoginError)
+	}
+
+	// For OAuth users, we assume MFA is passed (you might want to handle this differently)
+	mfaPassed := true
+
+	tokenService := NewTokenService(config, cache.NewCache(config.RedisAddress, config.RedisUsername, config.RedisPwd, 0))
+
+	// Create session ID
+	sessionID, err := uuid.NewRandom()
+	if err != nil {
+		return UserAuthRes{}, fmt.Errorf("error creating session id: %s", err)
+	}
+
+	// Refresh token
+	refreshToken, refreshPayload, err := tokenService.CreateRefreshToken(user.ID, sessionID, clientIP, agent)
+	if err != nil {
+		return UserAuthRes{}, fmt.Errorf("error creating refresh token: %s", err)
+	}
+
+	// Access token
+	accessToken, accessPayload, err := tokenService.CreateAccessToken(user.Email, user.Username.String, user.Phone.String, mfaPassed,
+		user.IsEmailVerified.Bool, user.ID, int8(user.RoleID), clientIP, agent)
+	if err != nil {
+		return UserAuthRes{}, fmt.Errorf("error creating access token: %s", err)
 	}
 
 	ip := utils.GetIpAddr(clientIP)

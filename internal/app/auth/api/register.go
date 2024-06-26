@@ -47,7 +47,7 @@ func (s *Server) register(ctx *gin.Context) {
 		return
 	}
 
-	sqlcUser, err := services.CreateUserConcurrent(ctx, qtx /*tx,*/, uid, req.Email, req.Username, hashedPwd)
+	sqlcUser, err := services.CreateUserConcurrent(ctx, qtx /*tx,*/, uid, req.Email, req.Username, hashedPwd, false, false)
 	if err != nil {
 		// return nil, status.Errorf(codes.Internal, "error while creating user with email and password %s", err)
 		log.Err(err).Msg("Error4")
@@ -56,7 +56,7 @@ func (s *Server) register(ctx *gin.Context) {
 	}
 
 	// Run concurrent operations
-	accessToken, accessExp, err := services.RunConcurrentUserCreationTasks(ctx, qtx, tx, s.config, s.taskDistributor, req, uid, clientIP, agent)
+	accessToken, accessExp, err := services.RunConcurrentUserCreationTasks(ctx, qtx, tx, s.config, s.taskDistributor, req, uid, clientIP, agent, false)
 	if err != nil {
 		// return nil, status.Errorf(codes.Internal, "error creating details: %s", err.Error())
 		log.Err(err).Msg("Error5")

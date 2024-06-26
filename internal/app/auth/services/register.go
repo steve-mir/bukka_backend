@@ -39,7 +39,7 @@ type AccessTokenResult struct {
 
 func CheckUserExists(ctx context.Context, qtx *sqlc.Queries, email, username string) error {
 	// Check db if email exists
-	if err := checkEmailExistsError(ctx, qtx, email); err != nil {
+	if err := CheckEmailExistsError(ctx, qtx, email); err != nil {
 		fmt.Println("Error checking email", email)
 		return err
 	}
@@ -67,12 +67,20 @@ func PrepareUserData(pwd string) (string, uuid.UUID, error) {
 	return hashedPwd, uid, nil
 }
 
-func CreateUserConcurrent(ctx context.Context, qtx *sqlc.Queries /*tx *sql.Tx,*/, uid uuid.UUID, email, username, pwd string) (sqlc.Authentication, error) {
+func CreateUserConcurrent(ctx context.Context, qtx *sqlc.Queries /*tx *sql.Tx,*/, uid uuid.UUID, email, username, pwd string, isEmailVerified, isOauthUser bool) (sqlc.Authentication, error) {
 	params := sqlc.CreateUserParams{
 		ID:           uid,
 		Email:        email,
 		Username:     sql.NullString{String: username, Valid: true},
 		PasswordHash: pwd,
+		IsEmailVerified: sql.NullBool{
+			Bool:  isEmailVerified,
+			Valid: true,
+		},
+		IsOauthUser: sql.NullBool{
+			Bool:  isOauthUser,
+			Valid: true,
+		},
 	}
 
 	userData, err := qtx.CreateUser(ctx, params)
@@ -163,7 +171,7 @@ func RunSyncUserCreationTasks(ctx context.Context, qtx *sqlc.Queries, tx *sql.Tx
 }
 
 func RunConcurrentUserCreationTasks(ctx context.Context, qtx *sqlc.Queries, tx *sql.Tx, config utils.Config, td worker.TaskDistributor,
-	req RegisterReq, uid uuid.UUID, clientIP string, agent string) (string, time.Time, error) {
+	req RegisterReq, uid uuid.UUID, clientIP string, agent string, isEmailVerified bool) (string, time.Time, error) {
 
 	tokenService := NewTokenService(config, cache.NewCache(config.RedisAddress, config.RedisUsername, config.RedisPwd, 0))
 	var accessToken string
@@ -210,14 +218,17 @@ func RunConcurrentUserCreationTasks(ctx context.Context, qtx *sqlc.Queries, tx *
 	})
 
 	// Send verification email concurrently (does not need to be within transaction)
-	eg.Go(func() error {
-		err = SendVerificationEmail(qtx, ctx, td, uid, req.Email)
-		if err != nil {
-			return err
-		}
+	if !isEmailVerified {
 
-		return nil
-	})
+		eg.Go(func() error {
+			err = SendVerificationEmail(qtx, ctx, td, uid, req.Email)
+			if err != nil {
+				return err
+			}
+
+			return nil
+		})
+	}
 
 	// Wait for both goroutines to complete
 	if err := eg.Wait(); err != nil {
@@ -229,7 +240,7 @@ func RunConcurrentUserCreationTasks(ctx context.Context, qtx *sqlc.Queries, tx *
 }
 
 // ?----------------
-func checkEmailExistsError(ctx context.Context, qtx *sqlc.Queries, email string) error {
+func CheckEmailExistsError(ctx context.Context, qtx *sqlc.Queries, email string) error {
 	// Check duplicate emails
 	user, err := qtx.GetUserByIdentifier(ctx, email)
 	if err != nil && err != sql.ErrNoRows {

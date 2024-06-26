@@ -1,8 +1,8 @@
 -- name: CreateUser :one
 INSERT INTO authentications (
-    id, email, username, password_hash
+    id, email, username, password_hash, is_email_verified, is_oauth_user
     )
-VALUES ($1, $2, $3, $4)
+VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING *;
 
 -- name: GetUserByIdentifier :one

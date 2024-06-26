@@ -43,6 +43,7 @@ type Authentication struct {
 	LockoutDuration     sql.NullInt32  `json:"lockout_duration"`
 	LockoutUntil        sql.NullTime   `json:"lockout_until"`
 	IsMfaEnabled        sql.NullBool   `json:"is_mfa_enabled"`
+	IsOauthUser         sql.NullBool   `json:"is_oauth_user"`
 }
 
 type EmailVerificationRequest struct {

@@ -17,7 +17,8 @@ CREATE TABLE "authentications" (
   "password_last_changed" timestamptz,
   "lockout_duration" int DEFAULT 60,
   "lockout_until" timestamptz,
-  "is_mfa_enabled" boolean DEFAULT false
+  "is_mfa_enabled" boolean DEFAULT false,
+  "is_oauth_user" boolean DEFAULT false
 );
 
 CREATE TABLE IF NOT EXISTS users (

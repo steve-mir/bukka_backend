@@ -38,17 +38,19 @@ func (q *Queries) CheckUsername(ctx context.Context, lower string) (int64, error
 
 const createUser = `-- name: CreateUser :one
 INSERT INTO authentications (
-    id, email, username, password_hash
+    id, email, username, password_hash, is_email_verified, is_oauth_user
     )
-VALUES ($1, $2, $3, $4)
-RETURNING id, email, phone, username, password_hash, created_at, updated_at, is_suspended, is_deleted, is_verified, is_email_verified, deleted_at, verified_at, suspended_at, login_attempts, password_last_changed, lockout_duration, lockout_until, is_mfa_enabled
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING id, email, phone, username, password_hash, created_at, updated_at, is_suspended, is_deleted, is_verified, is_email_verified, deleted_at, verified_at, suspended_at, login_attempts, password_last_changed, lockout_duration, lockout_until, is_mfa_enabled, is_oauth_user
 `
 
 type CreateUserParams struct {
-	ID           uuid.UUID      `json:"id"`
-	Email        string         `json:"email"`
-	Username     sql.NullString `json:"username"`
-	PasswordHash string         `json:"password_hash"`
+	ID              uuid.UUID      `json:"id"`
+	Email           string         `json:"email"`
+	Username        sql.NullString `json:"username"`
+	PasswordHash    string         `json:"password_hash"`
+	IsEmailVerified sql.NullBool   `json:"is_email_verified"`
+	IsOauthUser     sql.NullBool   `json:"is_oauth_user"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (Authentication, error) {
@@ -57,6 +59,8 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (Authent
 		arg.Email,
 		arg.Username,
 		arg.PasswordHash,
+		arg.IsEmailVerified,
+		arg.IsOauthUser,
 	)
 	var i Authentication
 	err := row.Scan(
@@ -79,6 +83,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (Authent
 		&i.LockoutDuration,
 		&i.LockoutUntil,
 		&i.IsMfaEnabled,
+		&i.IsOauthUser,
 	)
 	return i, err
 }
@@ -120,7 +125,7 @@ func (q *Queries) GetUidsFromUsername(ctx context.Context, dollar_1 []string) ([
 }
 
 const getUserAndRoleByIdentifier = `-- name: GetUserAndRoleByIdentifier :one
-SELECT authentications.id, authentications.email, authentications.phone, authentications.username, authentications.password_hash, authentications.created_at, authentications.updated_at, authentications.is_suspended, authentications.is_deleted, authentications.is_verified, authentications.is_email_verified, authentications.deleted_at, authentications.verified_at, authentications.suspended_at, authentications.login_attempts, authentications.password_last_changed, authentications.lockout_duration, authentications.lockout_until, authentications.is_mfa_enabled, user_roles.role_id, users.id, users.user_id, users.first_name, users.last_name, users.image_url
+SELECT authentications.id, authentications.email, authentications.phone, authentications.username, authentications.password_hash, authentications.created_at, authentications.updated_at, authentications.is_suspended, authentications.is_deleted, authentications.is_verified, authentications.is_email_verified, authentications.deleted_at, authentications.verified_at, authentications.suspended_at, authentications.login_attempts, authentications.password_last_changed, authentications.lockout_duration, authentications.lockout_until, authentications.is_mfa_enabled, authentications.is_oauth_user, user_roles.role_id, users.id, users.user_id, users.first_name, users.last_name, users.image_url
 FROM authentications
 JOIN user_roles ON authentications.id = user_roles.user_id
 LEFT JOIN users ON authentications.id = users.user_id
@@ -147,6 +152,7 @@ type GetUserAndRoleByIdentifierRow struct {
 	LockoutDuration     sql.NullInt32  `json:"lockout_duration"`
 	LockoutUntil        sql.NullTime   `json:"lockout_until"`
 	IsMfaEnabled        sql.NullBool   `json:"is_mfa_enabled"`
+	IsOauthUser         sql.NullBool   `json:"is_oauth_user"`
 	RoleID              int32          `json:"role_id"`
 	ID_2                sql.NullInt32  `json:"id_2"`
 	UserID              uuid.NullUUID  `json:"user_id"`
@@ -178,6 +184,7 @@ func (q *Queries) GetUserAndRoleByIdentifier(ctx context.Context, username sql.N
 		&i.LockoutDuration,
 		&i.LockoutUntil,
 		&i.IsMfaEnabled,
+		&i.IsOauthUser,
 		&i.RoleID,
 		&i.ID_2,
 		&i.UserID,
@@ -189,7 +196,7 @@ func (q *Queries) GetUserAndRoleByIdentifier(ctx context.Context, username sql.N
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, phone, username, password_hash, created_at, updated_at, is_suspended, is_deleted, is_verified, is_email_verified, deleted_at, verified_at, suspended_at, login_attempts, password_last_changed, lockout_duration, lockout_until, is_mfa_enabled FROM authentications WHERE id = $1 LIMIT 1
+SELECT id, email, phone, username, password_hash, created_at, updated_at, is_suspended, is_deleted, is_verified, is_email_verified, deleted_at, verified_at, suspended_at, login_attempts, password_last_changed, lockout_duration, lockout_until, is_mfa_enabled, is_oauth_user FROM authentications WHERE id = $1 LIMIT 1
 `
 
 func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (Authentication, error) {
@@ -215,12 +222,13 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (Authentication
 		&i.LockoutDuration,
 		&i.LockoutUntil,
 		&i.IsMfaEnabled,
+		&i.IsOauthUser,
 	)
 	return i, err
 }
 
 const getUserByIdentifier = `-- name: GetUserByIdentifier :one
-SELECT id, email, phone, username, password_hash, created_at, updated_at, is_suspended, is_deleted, is_verified, is_email_verified, deleted_at, verified_at, suspended_at, login_attempts, password_last_changed, lockout_duration, lockout_until, is_mfa_enabled FROM authentications
+SELECT id, email, phone, username, password_hash, created_at, updated_at, is_suspended, is_deleted, is_verified, is_email_verified, deleted_at, verified_at, suspended_at, login_attempts, password_last_changed, lockout_duration, lockout_until, is_mfa_enabled, is_oauth_user FROM authentications
 WHERE email = $1 OR username = $1 OR phone = $1
 LIMIT 1
 `
@@ -248,6 +256,7 @@ func (q *Queries) GetUserByIdentifier(ctx context.Context, email string) (Authen
 		&i.LockoutDuration,
 		&i.LockoutUntil,
 		&i.IsMfaEnabled,
+		&i.IsOauthUser,
 	)
 	return i, err
 }
@@ -312,7 +321,7 @@ SET
     is_mfa_enabled = COALESCE($17,is_mfa_enabled)
 WHERE
     id = $18
-RETURNING id, email, phone, username, password_hash, created_at, updated_at, is_suspended, is_deleted, is_verified, is_email_verified, deleted_at, verified_at, suspended_at, login_attempts, password_last_changed, lockout_duration, lockout_until, is_mfa_enabled
+RETURNING id, email, phone, username, password_hash, created_at, updated_at, is_suspended, is_deleted, is_verified, is_email_verified, deleted_at, verified_at, suspended_at, login_attempts, password_last_changed, lockout_duration, lockout_until, is_mfa_enabled, is_oauth_user
 `
 
 type UpdateUserParams struct {
@@ -378,6 +387,7 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (Authent
 		&i.LockoutDuration,
 		&i.LockoutUntil,
 		&i.IsMfaEnabled,
+		&i.IsOauthUser,
 	)
 	return i, err
 }
