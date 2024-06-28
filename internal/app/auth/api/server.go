@@ -9,7 +9,9 @@ import (
 	"github.com/go-playground/validator/v10"
 	db "github.com/steve-mir/bukka_backend/db/sqlc"
 	"github.com/steve-mir/bukka_backend/internal/app/auth/middlewares"
+	"github.com/steve-mir/bukka_backend/internal/app/auth/services"
 	"github.com/steve-mir/bukka_backend/internal/cache"
+	"github.com/steve-mir/bukka_backend/token"
 	"github.com/steve-mir/bukka_backend/utils"
 	"github.com/steve-mir/bukka_backend/worker"
 	"golang.org/x/oauth2"
@@ -27,12 +29,18 @@ type Server struct {
 	db              *sql.DB
 	config          utils.Config
 	taskDistributor worker.TaskDistributor
-	cache           *cache.Cache
+	tokenService    *services.TokenService
 	oauthConfig     *oauth2.Config
+	tokenMaker      token.Maker
+	cache           *cache.Cache
 }
 
 func NewServer(store db.Store, db *sql.DB, config utils.Config, td worker.TaskDistributor) *Server {
+	// TODO: Handle error making token.
+	tokenMaker, _ := token.NewPasetoMaker(config.AccessTokenSymmetricKey, config.RefreshTokenSymmetricKey)
 	cache := cache.NewCache(config.RedisAddress, config.RedisUsername, config.RedisPwd, 0) // ! Remove
+	tokenService := services.NewTokenService(config, cache, tokenMaker)
+
 	oauthConfig := &oauth2.Config{
 		ClientID:     config.GoogleOauthClientId,
 		ClientSecret: config.GoogleOauthClientSecret,
@@ -41,7 +49,16 @@ func NewServer(store db.Store, db *sql.DB, config utils.Config, td worker.TaskDi
 		Endpoint:     google.Endpoint,
 	}
 
-	server := &Server{store: store, db: db, config: config, taskDistributor: td, cache: cache, oauthConfig: oauthConfig}
+	server := &Server{
+		store:           store,
+		db:              db,
+		config:          config,
+		taskDistributor: td,
+		tokenService:    tokenService,
+		oauthConfig:     oauthConfig,
+		tokenMaker:      tokenMaker,
+		cache:           cache,
+	}
 
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		v.RegisterValidation("emailValidator", utils.ValidEmail)
@@ -69,7 +86,7 @@ func (server *Server) setupRouter() {
 	router.POST(baseUrl+"rotate_token", server.rotateToken)
 	router.POST(baseUrl+"verify_email", server.verifyEmail)
 
-	authRoutes := router.Group("/").Use(middlewares.AuthMiddlerWare(server.config))
+	authRoutes := router.Group("/").Use(middlewares.AuthMiddlerWare(server.config, server.tokenMaker, *server.cache))
 	authRoutes.GET(baseUrl+"resend_verification", server.resendVerificationEmail)
 
 	authRoutes.DELETE(baseUrl+"delete_account", server.deleteAccount)
@@ -78,7 +95,7 @@ func (server *Server) setupRouter() {
 	authRoutes.POST(baseUrl+"change_password", server.changePwd)
 	router.POST(baseUrl+"forgot_password", server.forgotPwd)
 	router.POST(baseUrl+"reset_password", server.resetPwd)
-	// authRoutes.GET(baseUrl+"profile", server.viewProfile)
+	authRoutes.GET(baseUrl+"profile", server.viewProfile)
 	// authRoutes.PATCH(baseUrl+"profile", server.updateProfile)
 	authRoutes.GET(baseUrl+"logout", server.logout)
 	router.GET(baseUrl+"home", server.home)

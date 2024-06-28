@@ -10,7 +10,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/steve-mir/bukka_backend/constants"
 	"github.com/steve-mir/bukka_backend/db/sqlc"
-	"github.com/steve-mir/bukka_backend/internal/cache"
 	"github.com/steve-mir/bukka_backend/token"
 	"github.com/steve-mir/bukka_backend/utils"
 	"github.com/steve-mir/bukka_backend/worker"
@@ -97,83 +96,9 @@ func CreateUserConcurrent(ctx context.Context, qtx *sqlc.Queries /*tx *sql.Tx,*/
 	}, nil
 }
 
-func RunSyncUserCreationTasks(ctx context.Context, qtx *sqlc.Queries, tx *sql.Tx, config utils.Config, td worker.TaskDistributor,
-	req RegisterReq, uid uuid.UUID, clientIP string, agent string) (string, time.Time, error) {
-
-	type result struct {
-		err error
-	}
-
-	tokenService := NewTokenService(config, cache.NewCache(config.RedisAddress, config.RedisUsername, config.RedisPwd, 0))
-
-	// Create access token
-	accessToken, accessPayload, err := tokenService.CreateAccessToken(req.Email, req.Username, "", true, false, uid, constants.RegularUsers, clientIP, agent)
-	if err != nil {
-		tx.Rollback()
-		return "", time.Time{}, errors.New("unknown error")
-	}
-
-	// Channels to capture results
-	profileCh := make(chan result, 1)
-	roleCh := make(chan result, 1)
-	emailCh := make(chan result, 1)
-
-	// Create user profile sequentially
-	go func() {
-		profileErr := qtx.CreateUserProfile(ctx, sqlc.CreateUserProfileParams{
-			UserID:    uid,
-			FirstName: sql.NullString{String: req.FullName, Valid: true},
-			LastName:  sql.NullString{String: req.FullName, Valid: true},
-		})
-		profileCh <- result{err: profileErr}
-		close(profileCh)
-	}()
-
-	// Wait for user profile creation to complete
-	profileResult := <-profileCh
-	if profileResult.err != nil {
-		tx.Rollback()
-		return "", time.Time{}, fmt.Errorf("an unknown error occurred creating profile %v", profileResult.err)
-	}
-
-	// Create user role sequentially
-	go func() {
-		_, roleErr := qtx.CreateUserRole(ctx, sqlc.CreateUserRoleParams{
-			UserID: uid,
-			RoleID: constants.RegularUsers,
-		})
-		roleCh <- result{err: roleErr}
-		close(roleCh)
-	}()
-
-	// Wait for user role creation to complete
-	roleResult := <-roleCh
-	if roleResult.err != nil {
-		tx.Rollback()
-		return "", time.Time{}, errors.New("error cannot proceed")
-	}
-
-	// Send verification email concurrently (does not need to be within transaction)
-	go func() {
-		sendEmailErr := SendVerificationEmail(qtx, ctx, td, uid, req.Email)
-		emailCh <- result{err: sendEmailErr}
-		close(emailCh)
-	}()
-
-	// Wait for email sending to complete
-	emailResult := <-emailCh
-	if emailResult.err != nil {
-		tx.Rollback()
-		return "", time.Time{}, errors.New("unable to resend email " + emailResult.err.Error())
-	}
-
-	return accessToken, accessPayload.Expires, nil
-}
-
-func RunConcurrentUserCreationTasks(ctx context.Context, qtx *sqlc.Queries, tx *sql.Tx, config utils.Config, td worker.TaskDistributor,
+func RunConcurrentUserCreationTasks(ctx context.Context, tokenMaker token.Maker, qtx *sqlc.Queries, tx *sql.Tx, config utils.Config, td worker.TaskDistributor,
 	req RegisterReq, uid uuid.UUID, clientIP string, agent string, isEmailVerified bool) (string, time.Time, error) {
 
-	tokenService := NewTokenService(config, cache.NewCache(config.RedisAddress, config.RedisUsername, config.RedisPwd, 0))
 	var accessToken string
 	var accessPayload *token.Payload
 	var err error
@@ -182,7 +107,21 @@ func RunConcurrentUserCreationTasks(ctx context.Context, qtx *sqlc.Queries, tx *
 
 	// Create access token
 	eg.Go(func() error {
-		accessToken, accessPayload, err = tokenService.CreateAccessToken(req.Email, req.Username, "", true, false, uid, constants.RegularUsers, clientIP, agent)
+		accessToken, accessPayload, err = tokenMaker.CreateToken(
+			token.PayloadData{
+				Role:          constants.RegularUsers,
+				Subject:       uid,
+				Username:      req.Username,
+				Email:         req.Email,
+				EmailVerified: false,
+				Issuer:        config.AppName,
+				Audience:      "website users",
+				IP:            clientIP,
+				UserAgent:     agent,
+				MfaPassed:     true,
+				TokenType:     token.TokenType(token.AccessToken),
+			}, config.AccessTokenDuration, token.TokenType(token.AccessToken),
+		)
 		if err != nil {
 			return err
 		}
@@ -293,3 +232,78 @@ func addDeleteTimeToEmail(email string, deletedAt time.Time) string {
 	modifiedEmail := fmt.Sprintf("%s_deleted_%d", email, timestamp)
 	return modifiedEmail
 }
+
+/*
+func RunSyncUserCreationTasks(ctx context.Context, qtx *sqlc.Queries, tx *sql.Tx, config utils.Config, td worker.TaskDistributor,
+	req RegisterReq, uid uuid.UUID, clientIP string, agent string) (string, time.Time, error) {
+
+	type result struct {
+		err error
+	}
+
+	tokenService := NewTokenService(config, cache.NewCache(config.RedisAddress, config.RedisUsername, config.RedisPwd, 0))
+
+	// Create access token
+	accessToken, accessPayload, err := tokenService.CreateAccessToken(req.Email, req.Username, "", true, false, uid, constants.RegularUsers, clientIP, agent)
+	if err != nil {
+		tx.Rollback()
+		return "", time.Time{}, errors.New("unknown error")
+	}
+
+	// Channels to capture results
+	profileCh := make(chan result, 1)
+	roleCh := make(chan result, 1)
+	emailCh := make(chan result, 1)
+
+	// Create user profile sequentially
+	go func() {
+		profileErr := qtx.CreateUserProfile(ctx, sqlc.CreateUserProfileParams{
+			UserID:    uid,
+			FirstName: sql.NullString{String: req.FullName, Valid: true},
+			LastName:  sql.NullString{String: req.FullName, Valid: true},
+		})
+		profileCh <- result{err: profileErr}
+		close(profileCh)
+	}()
+
+	// Wait for user profile creation to complete
+	profileResult := <-profileCh
+	if profileResult.err != nil {
+		tx.Rollback()
+		return "", time.Time{}, fmt.Errorf("an unknown error occurred creating profile %v", profileResult.err)
+	}
+
+	// Create user role sequentially
+	go func() {
+		_, roleErr := qtx.CreateUserRole(ctx, sqlc.CreateUserRoleParams{
+			UserID: uid,
+			RoleID: constants.RegularUsers,
+		})
+		roleCh <- result{err: roleErr}
+		close(roleCh)
+	}()
+
+	// Wait for user role creation to complete
+	roleResult := <-roleCh
+	if roleResult.err != nil {
+		tx.Rollback()
+		return "", time.Time{}, errors.New("error cannot proceed")
+	}
+
+	// Send verification email concurrently (does not need to be within transaction)
+	go func() {
+		sendEmailErr := SendVerificationEmail(qtx, ctx, td, uid, req.Email)
+		emailCh <- result{err: sendEmailErr}
+		close(emailCh)
+	}()
+
+	// Wait for email sending to complete
+	emailResult := <-emailCh
+	if emailResult.err != nil {
+		tx.Rollback()
+		return "", time.Time{}, errors.New("unable to resend email " + emailResult.err.Error())
+	}
+
+	return accessToken, accessPayload.Expires, nil
+}
+*/

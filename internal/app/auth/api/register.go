@@ -56,7 +56,7 @@ func (s *Server) register(ctx *gin.Context) {
 	}
 
 	// Run concurrent operations
-	accessToken, accessExp, err := services.RunConcurrentUserCreationTasks(ctx, qtx, tx, s.config, s.taskDistributor, req, uid, clientIP, agent, false)
+	accessToken, accessExp, err := services.RunConcurrentUserCreationTasks(ctx, s.tokenMaker, qtx, tx, s.config, s.taskDistributor, req, uid, clientIP, agent, false)
 	if err != nil {
 		// return nil, status.Errorf(codes.Internal, "error creating details: %s", err.Error())
 		log.Err(err).Msg("Error5")
@@ -78,7 +78,7 @@ func (s *Server) register(ctx *gin.Context) {
 		Email:           sqlcUser.Email,
 		IsEmailVerified: sqlcUser.IsEmailVerified.Bool,
 		CreatedAt:       sqlcUser.CreatedAt.Time,
-		AuthTokenResp: services.AuthTokenResp{
+		AuthToken: services.AuthToken{
 			AccessToken:          accessToken,
 			AccessTokenExpiresAt: accessExp,
 		},

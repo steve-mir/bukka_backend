@@ -17,7 +17,7 @@ func (s *Server) rotateToken(ctx *gin.Context) {
 	clientIP := ctx.ClientIP()
 	agent := ctx.Request.UserAgent()
 
-	userData, err := services.RotateUserToken(req, s.store, ctx, s.config, clientIP, agent)
+	userData, err := services.RotateUserToken(req, s.tokenService, *s.cache, s.store, s.tokenMaker, ctx, s.config, clientIP, agent)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return

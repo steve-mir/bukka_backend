@@ -18,52 +18,43 @@ type RotateTokenReq struct {
 	RefreshToken string `json:"refresh_token" binding:"required"`
 }
 
-func RotateUserToken(req RotateTokenReq, store sqlc.Store, ctx context.Context, config utils.Config, clientIP, agent string) (AuthTokenResp, error) {
-	tokenMaker, err := token.NewPasetoMaker(config.RefreshTokenSymmetricKey, cache.NewCache(config.RedisAddress, config.RedisUsername, config.RedisPwd, 0))
-	if err != nil {
-		return AuthTokenResp{}, fmt.Errorf("cannot create token maker: %v", err)
-	}
+func RotateUserToken(req RotateTokenReq, ts *TokenService, cache cache.Cache, store sqlc.Store, tokenMaker token.Maker, ctx context.Context, config utils.Config, clientIP, agent string) (AuthToken, error) {
 
-	payload, err := VerifyToken(tokenMaker, req.RefreshToken)
+	payload, err := tokenMaker.VerifyToken(ctx, cache, req.RefreshToken, token.RefreshToken)
 	if err != nil {
-		return AuthTokenResp{}, fmt.Errorf("token verification failed: %v", err)
+		return AuthToken{}, fmt.Errorf("token verification failed: %v", err)
 	}
 
 	err = checkUserStatus(ctx, store, payload.Subject)
 	if err != nil {
-		return AuthTokenResp{}, err
+		return AuthToken{}, err
 	}
 
 	session, err := store.GetSessionAndUserByRefreshToken(ctx, req.RefreshToken)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			if blockErr := blockUser(ctx, store, payload.Subject); blockErr != nil {
-				return AuthTokenResp{}, blockErr
+				return AuthToken{}, blockErr
 			}
-			return AuthTokenResp{}, errors.New("suspicious activity detected")
+			return AuthToken{}, errors.New("suspicious activity detected")
 		}
-		return AuthTokenResp{}, fmt.Errorf("failed to get session: %v", err)
+		return AuthToken{}, fmt.Errorf("failed to get session: %v", err)
 	}
 
 	if !session.BlockedAt.Time.IsZero() {
-		return AuthTokenResp{}, errors.New("session blocked")
+		return AuthToken{}, errors.New("session blocked")
 	}
 	if !session.InvalidatedAt.Time.IsZero() {
-		return AuthTokenResp{}, errors.New("user not logged in")
+		return AuthToken{}, errors.New("user not logged in")
 	}
 
-	// ip := utils.GetIpAddr(clientIP)
-
-	authToken, err := NewTokenService(config, cache.NewCache(config.RedisAddress, config.RedisUsername, config.RedisPwd, 0)).
-		RotateToken(session.Email, session.Username.String, session.Phone.String, true, session.IsEmailVerified.Bool, payload.Subject,
-			int8(session.RoleID.Int32), session.ID, clientIP, agent, config, store)
+	authToken, err := ts.RotateTokens(ctx, req.RefreshToken, store, cache)
 
 	if err != nil {
-		return AuthTokenResp{}, fmt.Errorf("could not rotate token: %v", err)
+		return AuthToken{}, fmt.Errorf("could not rotate token: %v", err)
 	}
 
-	return AuthTokenResp{
-
+	return AuthToken{
 		AccessToken:           authToken.AccessToken,
 		RefreshToken:          authToken.RefreshToken,
 		AccessTokenExpiresAt:  authToken.AccessTokenExpiresAt,

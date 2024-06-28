@@ -22,7 +22,7 @@ var (
 	AuthorizationPayloadKey = "authorization_payload"
 )
 
-func AuthMiddlerWare(config utils.Config) gin.HandlerFunc {
+func AuthMiddlerWare(config utils.Config, tokenMaker token.Maker, cache cache.Cache) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		authorizationHeader := ctx.GetHeader(AuthorizationHeaderKey)
 		if len(authorizationHeader) == 0 {
@@ -46,14 +46,8 @@ func AuthMiddlerWare(config utils.Config) gin.HandlerFunc {
 		}
 
 		accessToken := fields[1]
-		tokenMaker, err := token.NewPasetoMaker(utils.GetKeyForToken(config, false), cache.NewCache(config.RedisAddress, config.RedisUsername, config.RedisPwd, 0))
-		if err != nil {
-			err := fmt.Errorf("could not init tokenMaker %s", err)
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
-			return
-		}
 
-		payload, err := tokenMaker.VerifyToken(accessToken) // Decrypts the access token and returns the data stored in it
+		payload, err := tokenMaker.VerifyToken(ctx, cache, accessToken, token.AccessToken) // Decrypts the access token and returns the data stored in it
 		if err != nil {
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 			return

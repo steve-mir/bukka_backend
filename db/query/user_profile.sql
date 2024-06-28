@@ -4,9 +4,6 @@ INSERT INTO users (
     )
 VALUES ($1, $2, $3, $4);
 
--- name: GetUserProfileByUID :one
-SELECT * FROM users WHERE user_id = $1 LIMIT 1;
-
 -- name: UpdateImgUserProfile :exec
 UPDATE users SET image_url = $2 WHERE user_id = $1;
 

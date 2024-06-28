@@ -93,23 +93,6 @@ func (q *Queries) GetUserProfile(ctx context.Context, username sql.NullString) (
 	return i, err
 }
 
-const getUserProfileByUID = `-- name: GetUserProfileByUID :one
-SELECT id, user_id, first_name, last_name, image_url FROM users WHERE user_id = $1 LIMIT 1
-`
-
-func (q *Queries) GetUserProfileByUID(ctx context.Context, userID uuid.UUID) (User, error) {
-	row := q.db.QueryRowContext(ctx, getUserProfileByUID, userID)
-	var i User
-	err := row.Scan(
-		&i.ID,
-		&i.UserID,
-		&i.FirstName,
-		&i.LastName,
-		&i.ImageUrl,
-	)
-	return i, err
-}
-
 const updateImgUserProfile = `-- name: UpdateImgUserProfile :exec
 UPDATE users SET image_url = $2 WHERE user_id = $1
 `

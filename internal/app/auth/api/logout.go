@@ -26,12 +26,10 @@ func (s *Server) logout(ctx *gin.Context) {
 	}
 
 	accessToken := fields[1]
-	token.RevokeToken(s.cache, accessToken)
-	// log.Println("ID", authPayload.SessionID)
-
-	err := s.store.RevokeSessionById(ctx, authPayload.SessionID)
+	// token.RevokeToken(s.cache, accessToken)
+	err := s.tokenMaker.RevokeTokenAccessToken(accessToken, ctx, s.store, *s.cache)
 	if err != nil {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid " + err.Error()})
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Error revoking token" + err.Error()})
 		return
 	}
 

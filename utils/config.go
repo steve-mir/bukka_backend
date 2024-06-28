@@ -33,6 +33,7 @@ type Config struct {
 	GoogleOauthClientId       string        `mapstructure:"GOOGLE_OAUTH_CLIENT_ID"`
 	GoogleOauthClientSecret   string        `mapstructure:"GOOGLE_OAUTH_CLIENT_SECRET"`
 	GoogleOauthClientRedirect string        `mapstructure:"GOOGLE_REDIRECT"`
+	AppVersion                string        `mapstructure:"APP_VERSION"`
 }
 
 // LoadConfig reads configuration from a file or environment variables.

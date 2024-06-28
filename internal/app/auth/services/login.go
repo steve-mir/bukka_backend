@@ -11,11 +11,11 @@ import (
 	"github.com/sqlc-dev/pqtype"
 	"github.com/steve-mir/bukka_backend/constants"
 	"github.com/steve-mir/bukka_backend/db/sqlc"
-	"github.com/steve-mir/bukka_backend/internal/cache"
+	"github.com/steve-mir/bukka_backend/token"
 	"github.com/steve-mir/bukka_backend/utils"
 )
 
-func LogUserIn(req LoginReq, store sqlc.Store, ctx context.Context, config utils.Config, clientIP, agent string) (UserAuthRes, error) {
+func LogUserIn(req LoginReq, tokenService TokenService, store sqlc.Store, ctx context.Context, config utils.Config, clientIP, agent string) (UserAuthRes, error) {
 	if err := validateLoginUserRequest(req.Identifier); err != nil {
 		return UserAuthRes{}, err
 	}
@@ -54,18 +54,25 @@ func LogUserIn(req LoginReq, store sqlc.Store, ctx context.Context, config utils
 		mfaPassed = true
 	}
 
-	tokenService := NewTokenService(config, cache.NewCache(config.RedisAddress, config.RedisUsername, config.RedisPwd, 0))
 	// Refresh token
-	refreshToken, refreshPayload, err := tokenService.CreateRefreshToken(user.ID, sessionID, clientIP, agent)
+	authToken, err := tokenService.CreateTokenPair(ctx, token.PayloadData{
+		Role:          int8(user.RoleID),
+		Subject:       user.ID,
+		Username:      user.Username.String,
+		Email:         user.Email,
+		Phone:         user.Phone.String,
+		EmailVerified: user.IsEmailVerified.Bool,
+		Issuer:        config.AppName,
+		Audience:      "website users",
+		IP:            clientIP,
+		UserAgent:     agent,
+		MfaPassed:     mfaPassed,
+		SessionID:     sessionID,
+		TokenType:     token.TokenType(token.AccessToken),
+	})
 	if err != nil {
-		return UserAuthRes{}, fmt.Errorf("error creating refresh token %s", err)
-	}
-
-	// Access token
-	accessToken, accessPayload, err := tokenService.CreateAccessToken(user.Email, user.Username.String, user.Phone.String, mfaPassed,
-		user.IsEmailVerified.Bool, user.ID, int8(user.RoleID), clientIP, agent)
-	if err != nil {
-		return UserAuthRes{}, fmt.Errorf("error creating access token %s", err)
+		log.Println("Session ID Error", err)
+		return UserAuthRes{}, fmt.Errorf("error creating session id %s", err)
 	}
 
 	ip := utils.GetIpAddr(clientIP)
@@ -73,15 +80,14 @@ func LogUserIn(req LoginReq, store sqlc.Store, ctx context.Context, config utils
 	_, err = store.CreateSession(ctx, sqlc.CreateSessionParams{
 		ID:              sessionID,
 		UserID:          user.ID,
-		RefreshToken:    refreshToken,
-		RefreshTokenExp: refreshPayload.Expires,
+		RefreshToken:    authToken.RefreshToken,
+		RefreshTokenExp: authToken.RefreshTokenExpiresAt,
 		UserAgent:       agent,
 		IpAddress:       ip,
 		FcmToken:        sql.NullString{String: req.FcmToken, Valid: true},
 	})
 
 	if err != nil {
-		log.Println("Session ID Error", err)
 		return UserAuthRes{}, fmt.Errorf("error creating session id %s", err)
 	}
 
@@ -103,16 +109,16 @@ func LogUserIn(req LoginReq, store sqlc.Store, ctx context.Context, config utils
 		ImageUrl:          user.ImageUrl.String,
 		CreatedAt:         user.CreatedAt.Time,
 		PasswordChangedAt: user.PasswordLastChanged.Time,
-		AuthTokenResp: AuthTokenResp{
-			AccessToken:           accessToken,
-			AccessTokenExpiresAt:  accessPayload.Expires,
-			RefreshToken:          refreshToken,
-			RefreshTokenExpiresAt: refreshPayload.Expires,
+		AuthToken: AuthToken{
+			AccessToken:           authToken.AccessToken,
+			AccessTokenExpiresAt:  authToken.AccessTokenExpiresAt,
+			RefreshToken:          authToken.RefreshToken,
+			RefreshTokenExpiresAt: authToken.RefreshTokenExpiresAt,
 		},
 	}, nil
 }
 
-func LogOAuthUserIn(req LoginReq, store sqlc.Store, ctx context.Context, config utils.Config, clientIP, agent string) (UserAuthRes, error) {
+func LogOAuthUserIn(req LoginReq, tokenService TokenService, store sqlc.Store, ctx context.Context, config utils.Config, clientIP, agent string) (UserAuthRes, error) {
 	user, err := store.GetUserAndRoleByIdentifier(ctx, sql.NullString{String: req.Identifier, Valid: true})
 	if err != nil {
 		return UserAuthRes{}, errors.New(constants.LoginError)
@@ -132,25 +138,31 @@ func LogOAuthUserIn(req LoginReq, store sqlc.Store, ctx context.Context, config 
 	// For OAuth users, we assume MFA is passed (you might want to handle this differently)
 	mfaPassed := true
 
-	tokenService := NewTokenService(config, cache.NewCache(config.RedisAddress, config.RedisUsername, config.RedisPwd, 0))
-
 	// Create session ID
 	sessionID, err := uuid.NewRandom()
 	if err != nil {
 		return UserAuthRes{}, fmt.Errorf("error creating session id: %s", err)
 	}
 
-	// Refresh token
-	refreshToken, refreshPayload, err := tokenService.CreateRefreshToken(user.ID, sessionID, clientIP, agent)
+	// Create access token and Refresh token
+	authToken, err := tokenService.CreateTokenPair(ctx, token.PayloadData{
+		Role:          int8(user.RoleID),
+		Subject:       user.ID,
+		Username:      user.Username.String,
+		Email:         user.Email,
+		Phone:         user.Phone.String,
+		EmailVerified: user.IsEmailVerified.Bool,
+		Issuer:        config.AppName,
+		Audience:      "website users",
+		IP:            clientIP,
+		UserAgent:     agent,
+		MfaPassed:     mfaPassed,
+		SessionID:     sessionID,
+		TokenType:     token.TokenType(token.AccessToken),
+	})
 	if err != nil {
-		return UserAuthRes{}, fmt.Errorf("error creating refresh token: %s", err)
-	}
-
-	// Access token
-	accessToken, accessPayload, err := tokenService.CreateAccessToken(user.Email, user.Username.String, user.Phone.String, mfaPassed,
-		user.IsEmailVerified.Bool, user.ID, int8(user.RoleID), clientIP, agent)
-	if err != nil {
-		return UserAuthRes{}, fmt.Errorf("error creating access token: %s", err)
+		log.Println("Session ID Error", err)
+		return UserAuthRes{}, fmt.Errorf("error creating session id %s", err)
 	}
 
 	ip := utils.GetIpAddr(clientIP)
@@ -158,8 +170,8 @@ func LogOAuthUserIn(req LoginReq, store sqlc.Store, ctx context.Context, config 
 	_, err = store.CreateSession(ctx, sqlc.CreateSessionParams{
 		ID:              sessionID,
 		UserID:          user.ID,
-		RefreshToken:    refreshToken,
-		RefreshTokenExp: refreshPayload.Expires,
+		RefreshToken:    authToken.RefreshToken,
+		RefreshTokenExp: authToken.RefreshTokenExpiresAt,
 		UserAgent:       agent,
 		IpAddress:       ip,
 		FcmToken:        sql.NullString{String: req.FcmToken, Valid: true},
@@ -188,11 +200,11 @@ func LogOAuthUserIn(req LoginReq, store sqlc.Store, ctx context.Context, config 
 		ImageUrl:          user.ImageUrl.String,
 		CreatedAt:         user.CreatedAt.Time,
 		PasswordChangedAt: user.PasswordLastChanged.Time,
-		AuthTokenResp: AuthTokenResp{
-			AccessToken:           accessToken,
-			AccessTokenExpiresAt:  accessPayload.Expires,
-			RefreshToken:          refreshToken,
-			RefreshTokenExpiresAt: refreshPayload.Expires,
+		AuthToken: AuthToken{
+			AccessToken:           authToken.AccessToken,
+			AccessTokenExpiresAt:  authToken.AccessTokenExpiresAt,
+			RefreshToken:          authToken.RefreshToken,
+			RefreshTokenExpiresAt: authToken.RefreshTokenExpiresAt,
 		},
 	}, nil
 }
