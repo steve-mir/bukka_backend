@@ -14,6 +14,7 @@ type Config struct {
 	DBDriver                  string        `mapstructure:"DB_DRIVER"`
 	DBSource                  string        `mapstructure:"DB_SOURCE"`
 	HTTPAuthServerAddress     string        `mapstructure:"HTTP_AUTH_SERVER_ADDRESS"`
+	HTTPMenuServerAddress     string        `mapstructure:"HTTP_MENU_SERVER_ADDRESS"`
 	RedisAddress              string        `mapstructure:"REDIS_ADDRESS"`
 	RedisUsername             string        `mapstructure:"REDIS_USERNAME"`
 	RedisPwd                  string        `mapstructure:"REDIS_PWD"`
