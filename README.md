@@ -161,6 +161,27 @@ To use the authentication endpoints, you can use tools like [Postman](https://ww
     }
     ```
 
+
+#### Login with Google
+
+- **Endpoint:** `/v1/auth/google/login?fcmToken=12345`
+- **Method:** `GET`
+- **Description:** Authenticate a user using their Google account and return a JWT token. The user will be redirected to the google screen to select their email. After that they are returned to /v1/auth/google/callback where the response data is returned
+
+- **Response:**
+    ```json
+    {
+        "uid":"c7d6c3c9-e730-431d-bd96-e4749416acc3","is_email_verified":true,
+        "username":"",
+        "email":"ekechukwuemeka25@gmail.com","created_at":"2024-07-18T13:55:53.138694Z","password_changed_at":"0001-01-01T00:00:00Z","is_suspended":false,
+        "is_mfa_enabled":false,
+        "is_deleted":false,
+        "image_url":"",
+        "access_token":"v2.local.TGWNS3bL_TylDk4-OYFDuA7bSO-XYRSdehXJ4qbjt7JmfTeOVhTk4aQoQGGujEPVBh9FRef3yQsiYy4Q6OipT1fuu_-VBKStBQnFeOJ9Z0dC4XAMqNcekswnqTYCXzyLV8LbpF5W3SJE_QxYGRofj_LDIfKJD07NqsWbunlCx2UjbQQaqZuaBBiszz621haWsZwGunubVIYpJHh99MeEuC3IVqxom2SO_FtBoZyQdhyw9RY8vg7SQdVcmQOq_bazP8l7XjVSy5k4nYxVYNMjJoqZXJNOob831iUS8nFAyWnwRNIP_ZbKZWgcrakxThpPihbH3iP0Id_71JCCJDD4pnvAnSulOmVW9lvtBKOwdHNuhCaFcsQUZFmKOb15h6tBeOZZIyFr9YQ6qKBQWIV1J88YOz7UlGcN57Ej7zKTMupGOuh_ZyiS81WQiQfqjOtiBtbTE-P8KhlpVoWw0BlbTbCyG3d807X7eOScNiqhxJlZoprw0eyFEmGsqv8pe3qoEsKg8NJzb5DoRyfYTGPZcI-Er-LbJvLKXAScIRRe0_D8ZqlFVAoHn_LC3yad3HNGT6ssg14MyDnULBJ8QcpXMBC1YVEW8rG6xKyf0-Zt_KyZk8s3EbHGKSfDJucaGg1CsipgmgFfKibZRZ1tKz-txt_lnd1JQyndYM1EaXfk1rcdgh82pYXwJOFnENGfbDSgjFA5oxRlbqgBD_AQ3gzUbiy-vpugxPvio80LBTEg5UT7jUM6Z1CtJ2I7uJvK0Q82gyhFTGA24e5EAbpfY9gh3UVmz8e4ogALHfrlCmVAxt1IRDxB7VIq2XHGqtVpXnMplcHK0ZBstEh_TISoRfpP62spM97P_X-zEvF1.bnVsbA","refresh_token":"v2.local.CkKtnzuOCsRqu4NLqZ4lTu2KqC2vow9GKFQ0Ps1V4PokLeFFqq2vfeb-WnPqAcXYsqebIErCw-hczPppWTPV44qAP1BvvkZHi_rkz3kCglntvuf5xkAQCYBO4buVQs6bG2c6lDCkLpICc6rj4Vlx5Bb-Yfbvk3RfQOMmKIGQbNEX0YPE10EZqNyHV9RfOmP9kwJ1KCgnVbj87ha6p-6-PyweN-pyzGGBYpMYStNXBse7CPH-6bz5S5AkFbBU4yhdBNKwFaxAwyAAh5XYLwK7ETCG5UUD_8lz23waUKAi1kZpYhyTH9VfYuJdSrxlp00CYAv0I29LDtFRInkNN7wOelDb838i_e8VggbLXgyST1HEbbrLLTScVSsynsgUtPTWsRiLZSaA6cRc-DLAwUYKvlpDTGiNPvxLMtr0kGzyTIWS76JMPhYvQM2rITUTvEun6SI8EhSgi77Ri-4ONpy7EEITaWdAQCyz9vPiZTBA4-gI976Zf0oFYDEAjqot5c37rwmrlweh2rcypMtb70JFnPT_UumUe-KBO95XLiQ3PVny3Hptgq3yeMplm1GNKkSiN9SGl2dLHub9AzU76nGBoOkG1CKTZ9puRptOcezqs1YH5kHMXXrtKQMeT3tMo5ykXnkgBriEfDTA8oPfGApN5FV8MGP2K4QTyLmlllV8b4KZAyndm8pXArFBN94nYf2U8EUrVrJVibPaxZ_tKhHoosEQMr-5bxcD_WnALvvLLVMPHrRSNTX2-8mQBCWk_pHc8hPazc2FgfUsFX6oa1tSItOTd4PDB2zvG3vE1F7ugNBSoJgJcBdca0w.bnVsbA",
+        "access_token_expires_at":"2024-07-18T15:56:20.864149+01:00","refresh_token_expires_at":"2024-07-25T14:56:20.864128+01:00"
+    }
+    ```
+
 #### Profile
 
 - **Endpoint:** `/v1/auth/profile`
