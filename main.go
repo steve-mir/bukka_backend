@@ -23,6 +23,7 @@ func main() {
 
 	microservices := []string{
 		"internal/app/auth/main.go",
+		// "internal/app/menu/main.go",
 	}
 
 	for _, ms := range microservices {

@@ -13,12 +13,6 @@ import (
 func (s *Server) viewProfile(ctx *gin.Context) {
 	authPayload := ctx.MustGet(middlewares.AuthorizationPayloadKey).(*token.Payload)
 
-	// err := services.DeleteAccountRequest(ctx, req.Password, s.store, authPayload.Subject)
-	// if err != nil {
-	// 	ctx.JSON(http.StatusBadRequest, errorResponse(err))
-	// 	return
-	// }
-
 	user, err := s.store.GetUserProfile(ctx, sql.NullString{String: authPayload.Subject.String(), Valid: true})
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))

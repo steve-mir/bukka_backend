@@ -10,7 +10,6 @@ import (
 )
 
 func (s *Server) logout(ctx *gin.Context) {
-
 	authPayload := ctx.MustGet(middlewares.AuthorizationPayloadKey).(*token.Payload)
 
 	authorizationHeader := ctx.GetHeader(middlewares.AuthorizationHeaderKey)
@@ -26,7 +25,6 @@ func (s *Server) logout(ctx *gin.Context) {
 	}
 
 	accessToken := fields[1]
-	// token.RevokeToken(s.cache, accessToken)
 	err := s.tokenMaker.RevokeTokenAccessToken(accessToken, ctx, s.store, *s.cache)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Error revoking token" + err.Error()})
