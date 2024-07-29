@@ -7,6 +7,7 @@ import (
 	"github.com/hibiken/asynq"
 	"github.com/rs/zerolog/log"
 	"github.com/steve-mir/bukka_backend/db/sqlc"
+	"github.com/steve-mir/bukka_backend/utils"
 )
 
 const (
@@ -23,9 +24,10 @@ type RedisTaskProcessor struct {
 	server *asynq.Server
 	store  sqlc.Store
 	db     *sql.DB
+	config utils.Config
 }
 
-func NewRedisTaskProcessor(redisOpt asynq.RedisClientOpt, store sqlc.Store, db *sql.DB) TaskProcessor {
+func NewRedisTaskProcessor(redisOpt asynq.RedisClientOpt, store sqlc.Store, db *sql.DB, config utils.Config) TaskProcessor {
 
 	server := asynq.NewServer(
 		redisOpt,
@@ -45,6 +47,7 @@ func NewRedisTaskProcessor(redisOpt asynq.RedisClientOpt, store sqlc.Store, db *
 		server: server,
 		store:  store,
 		db:     db,
+		config: config,
 	}
 }
 

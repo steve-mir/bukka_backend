@@ -40,7 +40,7 @@ func main() {
 	taskDistributor := worker.NewRedisTaskDistributor(redisOpt)
 
 	store := sqlc.NewStore(db)
-	go runTaskProcessor(redisOpt, store, db)
+	go runTaskProcessor(redisOpt, store, db, config)
 	server := setupGinServer(store, db, config, taskDistributor)
 	startGinServer(server, config.HTTPMenuServerAddress)
 
@@ -94,8 +94,8 @@ func startGinServer(server *http.Server, address string) {
 
 // }
 
-func runTaskProcessor(redisOpt asynq.RedisClientOpt, store sqlc.Store, db *sql.DB) {
-	mailer := worker.NewRedisTaskProcessor(redisOpt, store, db)
+func runTaskProcessor(redisOpt asynq.RedisClientOpt, store sqlc.Store, db *sql.DB, config utils.Config) {
+	mailer := worker.NewRedisTaskProcessor(redisOpt, store, db, config)
 	// log.Info().Msg("Starting task processor")
 	err := mailer.Start()
 	if err != nil {

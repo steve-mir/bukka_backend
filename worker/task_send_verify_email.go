@@ -7,6 +7,7 @@ import (
 
 	"github.com/hibiken/asynq"
 	"github.com/rs/zerolog/log"
+	"github.com/steve-mir/bukka_backend/mailer"
 )
 
 const TaskSendEmail = "task:send_email"
@@ -55,5 +56,8 @@ func (processor *RedisTaskProcessor) ProcessTaskSendVerifyEmail(ctx context.Cont
 	log.Print("sending email", user.Email, " content", payload.Content)
 	log.Info().Str("type", task.Type()).Bytes("payload", task.Payload()).
 		Str("email", user.Email).Str("email", user.Email).Msg("processed task")
-	return nil
+
+	sender := mailer.NewSMTPSender("Bukka", processor.config.SMTPAddr, processor.config.SMTPHost, "2525", processor.config.SMTPUsername, processor.config.SMTPPassword)
+	return sender.SendEmail("Email verification", payload.Content, []string{user.Email}, []string{}, []string{}, []string{})
+	// return nil
 }
