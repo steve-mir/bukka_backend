@@ -4,8 +4,26 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
+
+	amqp "github.com/rabbitmq/amqp091-go"
 )
+
+type AuthAction string
+
+const (
+	AuthActionLogin    AuthAction = "login"
+	AuthActionRegister AuthAction = "register"
+	AuthActionForgot   AuthAction = "forgot"
+)
+
+type AuthPayload struct {
+	Action   AuthAction `json:"auth_action"`
+	Email    string     `json:"email"`
+	Password string     `json:"password"`
+	Username string     `json:"username,omitempty"`
+}
 
 type AuthResponse struct {
 	Error   bool   `json:"error"`
@@ -14,6 +32,90 @@ type AuthResponse struct {
 }
 
 func (app *Config) Authenticate(w http.ResponseWriter, r *http.Request) {
+	var payload AuthPayload
+
+	err := json.NewDecoder(r.Body).Decode(&payload)
+	if err != nil {
+		app.errorJSON(w, err, http.StatusBadRequest)
+		return
+	}
+
+	var response AuthResponse
+	log.Println("Action", payload.Action)
+	switch payload.Action {
+	case AuthActionLogin:
+		response = app.handleLogin(payload)
+	case AuthActionRegister:
+		response = app.handleRegister(payload)
+	case AuthActionForgot:
+		response = app.handleForgotPassword(payload)
+	default:
+		response = AuthResponse{Error: true, Message: "Invalid auth action"}
+	}
+
+	app.writeJSON(w, http.StatusAccepted, response)
+
+	// If this was called via RabbitMQ, send the response back
+	if r.Header.Get("X-RabbitMQ-Reply-To") != "" {
+		app.sendRabbitMQResponse(response, r.Header.Get("X-RabbitMQ-Reply-To"), r.Header.Get("X-Correlation-ID"))
+	}
+}
+
+func (app *Config) handleLogin(payload AuthPayload) AuthResponse {
+	// Implement login logic here
+	return AuthResponse{
+		Error:   false,
+		Message: fmt.Sprintf("Logged in user %s", payload.Email),
+	}
+}
+
+func (app *Config) handleRegister(payload AuthPayload) AuthResponse {
+	// Implement registration logic here
+	return AuthResponse{
+		Error:   false,
+		Message: fmt.Sprintf("Registered user %s", payload.Email),
+	}
+}
+
+func (app *Config) handleForgotPassword(payload AuthPayload) AuthResponse {
+	// Implement forgot password logic here
+	return AuthResponse{
+		Error:   false,
+		Message: fmt.Sprintf("Password reset initiated for user %s", payload.Email),
+	}
+}
+
+func (app *Config) sendRabbitMQResponse(response interface{}, replyTo, correlationID string) {
+	ch, err := app.Rabbit.Channel()
+	if err != nil {
+		log.Printf("Failed to open a channel: %s", err)
+		return
+	}
+	defer ch.Close()
+
+	body, err := json.Marshal(response)
+	if err != nil {
+		log.Printf("Failed to marshal response: %s", err)
+		return
+	}
+
+	err = ch.Publish(
+		"amq.direct", // exchange
+		replyTo,      // routing key
+		false,        // mandatory
+		false,        // immediate
+		amqp.Publishing{
+			ContentType:   "application/json",
+			CorrelationId: correlationID,
+			Body:          body,
+		})
+	if err != nil {
+		log.Printf("Failed to publish a message: %s", err)
+		return
+	}
+}
+
+func (app *Config) AuthenticateOld(w http.ResponseWriter, r *http.Request) {
 	var requestPayload struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`

@@ -1,14 +1,25 @@
 package main
 
 import (
-	"broker/event"
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
+
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	amqp "github.com/rabbitmq/amqp091-go"
+)
+
+// AuthAction represents different authentication actions
+type AuthAction string
+
+const (
+	AuthActionLogin    AuthAction = "login"
+	AuthActionRegister AuthAction = "register"
+	AuthActionForgot   AuthAction = "forgot"
 )
 
 // RequestPayload describes the JSON that this service accepts as an HTTP Post request
@@ -29,8 +40,9 @@ type MailPayload struct {
 
 // AuthPayload is the embedded type (in RequestPayload) that describes an authentication request
 type AuthPayload struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Action   AuthAction `json:"auth_action"`
+	Email    string     `json:"email"`
+	Password string     `json:"password"`
 }
 
 // LogPayload is the embedded type (in RequestPayload) that describes a request to log something
@@ -60,10 +72,12 @@ func (app *Config) HandleSubmission() gin.HandlerFunc {
 		}
 
 		switch requestPayload.Action {
+		// case "auth":
+		// 	app.authenticateViaRabbit(ctx, requestPayload.Auth)
 		case "auth":
-			app.authenticateViaRabbit(ctx, requestPayload.Auth)
-		case "log":
-			app.logEventViaRabbit(ctx, requestPayload.Log)
+			app.handleAuth(ctx, requestPayload.Auth)
+		// case "log":
+		// 	app.logEventViaRabbit(ctx, requestPayload.Log)
 		// case "mail":
 		// 	app.sendMail(w, requestPayload.Mail)
 		default:
@@ -73,71 +87,93 @@ func (app *Config) HandleSubmission() gin.HandlerFunc {
 	}
 }
 
-func (app *Config) authenticateViaRabbit(ctx *gin.Context, a AuthPayload) {
-	err := app.pushToQueue(a.Email, a.Password, "auth.REQUEST")
+func (app *Config) handleAuth(ctx *gin.Context, auth AuthPayload) {
+	// Generate a unique correlation ID
+	correlationID := uuid.New().String()
+
+	// Create a response queue
+	responseQueue, err := app.createResponseQueue()
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	defer responseQueue.Close()
+
+	// Get the queue name
+	queue, err := responseQueue.QueueDeclare(
+		"",    // name
+		false, // durable
+		false, // delete when unused
+		true,  // exclusive
+		false, // no-wait
+		nil,   // arguments
+	)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
-	var payload jsonResponse
-	payload.Error = false
-	payload.Message = "Authentication request sent via RabbitMQ"
+	// Push the authentication request to RabbitMQ
+	err = app.pushAuthToQueue(auth, correlationID, queue.Name)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
 
-	ctx.JSON(http.StatusAccepted, payload)
+	// Wait for the response
+	select {
+	case response := <-app.waitForResponse(responseQueue, correlationID, queue.Name):
+		ctx.JSON(http.StatusOK, response)
+	case <-time.After(5 * time.Second):
+		ctx.JSON(http.StatusRequestTimeout, errorResponse(errors.New("authentication request timed out")))
+	}
 }
 
-// authenticate calls the authentication microservice and sends back the appropriate response
-func (app *Config) authenticate(ctx *gin.Context, a AuthPayload) {
-	// create some json we'll send to the auth microservice
-	jsonData, _ := json.MarshalIndent(a, "", "\t")
-
-	// call the service
-	request, err := http.NewRequest("POST", "http://authentication-service/authenticate", bytes.NewBuffer(jsonData))
+func (app *Config) pushAuthToQueue(auth AuthPayload, correlationID, replyTo string) error {
+	ch, err := app.Rabbit.Channel()
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
-		return
+		return err
 	}
+	defer ch.Close()
 
-	client := &http.Client{}
-	response, err := client.Do(request)
+	q, err := ch.QueueDeclare(
+		"auth_queue", // name
+		true,         // durable
+		false,        // delete when unused
+		false,        // exclusive
+		false,        // no-wait
+		nil,          // arguments
+	)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
-		return
-	}
-	defer response.Body.Close()
-
-	// make sure we get back the correct status code
-	if response.StatusCode == http.StatusUnauthorized {
-		ctx.JSON(http.StatusBadRequest, errorResponse(errors.New("invalid credentials")))
-
-		return
-	} else if response.StatusCode != http.StatusAccepted {
-		ctx.JSON(http.StatusBadRequest, errorResponse(errors.New("error calling auth service")))
-		return
+		return err
 	}
 
-	// create a variable we'll read response.Body into
-	var jsonFromService jsonResponse
-
-	// decode the json from the auth service
-	err = json.NewDecoder(response.Body).Decode(&jsonFromService)
+	body, err := json.Marshal(auth)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
-		return
+		return err
 	}
 
-	if jsonFromService.Error {
-		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
-		return
+	err = ch.Publish(
+		"",     // exchange
+		q.Name, // routing key
+		false,  // mandatory
+		false,  // immediate
+		amqp.Publishing{
+			DeliveryMode:  amqp.Persistent,
+			ContentType:   "application/json",
+			CorrelationId: correlationID,
+			ReplyTo:       replyTo,
+			Body:          body,
+		})
+	if err != nil {
+		return err
 	}
 
-	var payload jsonResponse
-	payload.Error = false
-	payload.Message = "Authenticated!"
-	payload.Data = jsonFromService.Data
+	return nil
+}
 
-	ctx.JSON(http.StatusOK, payload)
+func (app *Config) createResponseQueue() (*amqp.Channel, error) {
+	return app.Rabbit.Channel()
 }
 
 // sendMail sends email by calling the mail microservice
@@ -179,6 +215,38 @@ func (app *Config) sendMail(w http.ResponseWriter, msg MailPayload) {
 
 }
 
+func (app *Config) waitForResponse(ch *amqp.Channel, correlationID, queueName string) <-chan interface{} {
+	responses := make(chan interface{})
+	go func() {
+		msgs, err := ch.Consume(
+			queueName, // queue
+			"",        // consumer
+			true,      // auto-ack
+			false,     // exclusive
+			false,     // no-local
+			false,     // no-wait
+			nil,       // args
+		)
+		if err != nil {
+			close(responses)
+			return
+		}
+
+		for msg := range msgs {
+			if msg.CorrelationId == correlationID {
+				var response interface{}
+				err := json.Unmarshal(msg.Body, &response)
+				if err == nil {
+					responses <- response
+				}
+				return
+			}
+		}
+	}()
+	return responses
+}
+
+/*
 // logEventViaRabbit logs an event using the logger-service. It makes the call by pushing the data to RabbitMQ.
 func (app *Config) logEventViaRabbit(ctx *gin.Context, l LogPayload) {
 	err := app.pushToQueue(l.Name, l.Data, "log.INFO")
@@ -192,103 +260,5 @@ func (app *Config) logEventViaRabbit(ctx *gin.Context, l LogPayload) {
 	payload.Message = "logged via RabbitMQ"
 
 	ctx.JSON(http.StatusOK, payload)
-}
-
-// pushToQueue pushes a message into RabbitMQ
-func (app *Config) pushToQueue2(name, msg string) error {
-	emitter, err := event.NewEventEmitter(app.Rabbit)
-	if err != nil {
-		return err
-	}
-
-	payload := LogPayload{
-		Name: name,
-		Data: msg,
-	}
-
-	j, err := json.MarshalIndent(&payload, "", "\t")
-	if err != nil {
-		return err
-	}
-
-	err = emitter.Push(string(j), "log.INFO")
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (app *Config) pushToQueue(name, msg, routingKey string) error {
-	emitter, err := event.NewEventEmitter(app.Rabbit)
-	if err != nil {
-		return err
-	}
-
-	// payload := LogPayload{
-	// 	Name: name,
-	// 	Data: msg,
-	// }
-	payload := make(map[string]interface{})
-
-	switch routingKey {
-	case "auth.REQUEST":
-		payload["email"] = name
-		payload["password"] = msg
-	case "log.INFO":
-		payload["name"] = name
-		payload["data"] = msg
-	default:
-		return fmt.Errorf("unknown routing key: %s", routingKey)
-	}
-
-	j, err := json.MarshalIndent(&payload, "", "\t")
-	if err != nil {
-		return err
-	}
-
-	err = emitter.Push(string(j), routingKey)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-/*
-func (app *Config) LogViaGRPC(w http.ResponseWriter, r *http.Request) {
-	var requestPayload RequestPayload
-
-	err := app.readJSON(w, r, &requestPayload)
-	if err != nil {
-		app.errorJSON(w, err)
-		return
-	}
-
-	conn, err := grpc.Dial("logger-service:50001", grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
-	if err != nil {
-		app.errorJSON(w, err)
-		return
-	}
-	defer conn.Close()
-
-	c := logs.NewLogServiceClient(conn)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-
-	_, err = c.WriteLog(ctx, &logs.LogRequest{
-		LogEntry: &logs.Log{
-			Name: requestPayload.Log.Name,
-			Data: requestPayload.Log.Data,
-		},
-	})
-	if err != nil {
-		app.errorJSON(w, err)
-		return
-	}
-
-	var payload jsonResponse
-	payload.Error = false
-	payload.Message = "logged"
-
-	app.writeJSON(w, http.StatusAccepted, payload)
 }
 */

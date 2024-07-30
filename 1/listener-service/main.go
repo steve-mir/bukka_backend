@@ -30,7 +30,11 @@ func main() {
 	}
 
 	// watch the queue and consume events
-	err = consumer.Listen([]string{"log.INFO", "log.WARNING", "log.ERROR", "auth.REQUEST"})
+	// err = consumer.Listen([]string{"log.INFO", "log.WARNING", "log.ERROR", "auth.register", "auth.login"})
+	// if err != nil {
+	// 	log.Println(err)
+	// }
+	err = consumer.Listen()
 	if err != nil {
 		log.Println(err)
 	}
