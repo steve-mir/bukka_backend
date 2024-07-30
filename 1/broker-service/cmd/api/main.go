@@ -12,12 +12,14 @@ import (
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
+	"github.com/steve-mir/bukka_backend/broker/cmd/strategies"
 )
 
 const webPort = "80"
 
 type Config struct {
-	Rabbit *amqp.Connection
+	Rabbit          *amqp.Connection
+	StrategyFactory *strategies.StrategyFactory
 }
 
 func main() {
@@ -30,7 +32,8 @@ func main() {
 	defer rabbitConn.Close()
 
 	app := Config{
-		Rabbit: rabbitConn,
+		Rabbit:          rabbitConn,
+		StrategyFactory: strategies.NewStrategyFactory(rabbitConn),
 	}
 
 	log.Printf("Starting broker service on port %s\n", webPort)

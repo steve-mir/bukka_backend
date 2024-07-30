@@ -15,6 +15,33 @@ services:
     depends_on:
       - rabbitmq
 
+  # logger-service:
+  #   build:
+  #     context: ./../logger-service
+  #     dockerfile: ./../logger-service/logger-service.dockerfile
+  #   restart: always
+  #   deploy:
+  #     mode: replicated
+  #     replicas: 1
+
+  # mailer-service:
+  #   build:
+  #     context: ./../mail-service
+  #     dockerfile: ./../mail-service/mail-service.dockerfile
+  #   restart: always
+  #   deploy:
+  #     mode: replicated
+  #     replicas: 1
+  #   environment:
+  #     MAIL_DOMAIN: localhost
+  #     MAIL_HOST: mailhog
+  #     MAIL_PORT: 1025
+  #     MAIL_ENCRYPTION: none
+  #     MAIL_USERNAME: ""
+  #     MAIL_PASSWORD: ""
+  #     FROM_NAME: "John Smith"
+  #     FROM_ADDRESS: john.smith@example.com
+
   authentication-service:
     build:
       context: ./../authentication-service
@@ -27,7 +54,22 @@ services:
       replicas: 1
     depends_on:
       - rabbitmq
-    
+    environment:
+      DSN: "host=postgres port=5432 user=postgres password=password dbname=users sslmode=disable timezone=UTC connect_timeout=5"
+
+  # ! Menu
+  menu-service:
+    build:
+      context: ./../menu-service
+      dockerfile: ./../menu-service/menu-service.dockerfile
+    restart: always
+    # ports:
+    #   - "8081:80"
+    deploy:
+      mode: replicated
+      replicas: 1
+    depends_on:
+      - rabbitmq
 
   listener-service:
     build:

@@ -4,15 +4,24 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"net/http"
 	"os"
 	"time"
-
-	"github.com/steve-mir/bukka_backend/listener/event"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
+const webPort = "80"
+
+var counts int64
+
+type Config struct {
+	Rabbit *amqp.Connection
+}
+
 func main() {
+	log.Println("Starting menu service")
+
 	// try to connect to rabbitmq
 	rabbitConn, err := connect()
 	if err != nil {
@@ -21,18 +30,19 @@ func main() {
 	}
 	defer rabbitConn.Close()
 
-	// start listening for messages
-	log.Println("Listening for and consuming RabbitMQ messages...")
-
-	// create consumer
-	consumer, err := event.NewConsumer(rabbitConn)
-	if err != nil {
-		panic(err)
+	// set up config
+	app := Config{
+		Rabbit: rabbitConn,
 	}
 
-	err = consumer.Listen()
+	srv := &http.Server{
+		Addr:    fmt.Sprintf(":%s", webPort),
+		Handler: app.routes(),
+	}
+
+	err = srv.ListenAndServe()
 	if err != nil {
-		log.Println(err)
+		log.Panic(err)
 	}
 }
 

@@ -1,6 +1,6 @@
-module broker
+module github.com/steve-mir/bukka_backend/broker
 
-go 1.18
+go 1.20
 
 require (
 	github.com/gin-gonic/gin v1.10.0

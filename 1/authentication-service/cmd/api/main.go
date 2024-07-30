@@ -1,7 +1,6 @@
 package main
 
 import (
-	"authentication/data"
 	"database/sql"
 	"fmt"
 	"log"
@@ -9,6 +8,8 @@ import (
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/steve-mir/bukka_backend/authentication/data"
 
 	_ "github.com/jackc/pgconn"
 	_ "github.com/jackc/pgx/v4"

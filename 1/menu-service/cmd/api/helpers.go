@@ -5,14 +5,12 @@ import (
 	"errors"
 	"io"
 	"net/http"
-
-	"github.com/gin-gonic/gin"
 )
 
 type jsonResponse struct {
-	Error   bool   `json:"error"`
+	Error bool `json:"error"`
 	Message string `json:"message"`
-	Data    any    `json:"data,omitempty"`
+	Data any `json:"data,omitempty"`
 }
 
 // readJSON tries to read the body of a request and converts it into JSON
@@ -72,7 +70,4 @@ func (app *Config) errorJSON(w http.ResponseWriter, err error, status ...int) er
 	payload.Message = err.Error()
 
 	return app.writeJSON(w, statusCode, payload)
-}
-func errorResponse(err error) gin.H {
-	return gin.H{"error": err.Error()}
 }
