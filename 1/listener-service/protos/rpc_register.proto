@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package pb;
+
+import "user.proto";
+import "auth_token.proto";
+
+option go_package = "github.com/steve-mir/bukka_backend/authentication/pb";
+
+message RegisterUserRequest {
+    User user = 1;
+    string password = 2;
+}
+
+message RegisterUserResponse {
+    User user = 1;
+    AuthTokenInfo access_token_info = 2;
+}

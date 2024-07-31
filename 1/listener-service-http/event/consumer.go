@@ -26,21 +26,10 @@ func NewConsumer(conn *amqp.Connection) (*Consumer, error) {
 		conn:    conn,
 		channel: channel,
 		handlers: map[string]factory.CommandFactory{
-			"auth_queue": factory.NewAuthCommandFactory(),
-			"menu_queue": factory.NewMenuCommandFactory(),
+			"auth_queue": factory.AuthCommandFactory{},
+			"menu_queue": factory.MenuCommandFactory{},
 		},
 	}, nil
-}
-
-// Add other Consumer methods here...
-
-func (c *Consumer) Close() error {
-	for _, factory := range c.handlers {
-		if err := factory.Close(); err != nil {
-			log.Printf("Error closing factory: %v", err)
-		}
-	}
-	return c.channel.Close()
 }
 
 // Listen starts consuming messages from queues

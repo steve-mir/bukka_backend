@@ -6,6 +6,9 @@ MAIL_BINARY=mailerApp
 LISTENER_BINARY=listenerApp
 MENU_BINARY=menuApp
 
+# SERVICES = authentication-service menu-service broker-service logger-service mail-service listener-service
+SERVICES = authentication-service
+
 ## up: starts all containers in the background without forcing build
 up:
 	@echo "Starting Docker images..."
@@ -62,19 +65,14 @@ build_mail:
 	cd ../mail-service && env GOOS=linux CGO_ENABLED=0 go build -o ${MAIL_BINARY} ./cmd/api
 	@echo "Done!"
 
-## build_front: builds the frone end binary
-build_front:
-	@echo "Building front end binary..."
-	cd ../front-end && env CGO_ENABLED=0 go build -o ${FRONT_END_BINARY} ./cmd/web
-	@echo "Done!"
-
-## start: starts the front end
-start: build_front
-	@echo "Starting front end"
-	cd ../front-end && ./${FRONT_END_BINARY} &
-
-## stop: stop the front end
-stop:
-	@echo "Stopping front end..."
-	@-pkill -SIGTERM -f "./${FRONT_END_BINARY}"
-	@echo "Stopped front end!"
+## generate_protos: generates the proto files for all services
+generate_protos:
+	@echo "Generating proto files for all services..."
+	for service in ${SERVICES}; do \
+		rm -f ../$$service/pb/*.go; \
+		protoc --proto_path=../$$service/protos --go_out=../$$service/pb --go_opt=paths=source_relative \
+		--go-grpc_out=../$$service/pb --go-grpc_opt=paths=source_relative \
+		--grpc-gateway_out=../$$service/pb --grpc-gateway_opt=paths=source_relative \
+		../$$service/protos/*.proto; \
+	done
+	@echo "Proto files generated for all services!"

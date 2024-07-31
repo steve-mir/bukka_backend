@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package pb;
+
+import "rpc_register.proto";
+
+
+option go_package = "github.com/steve-mir/bukka_backend/authentication/pb";
+
+
+service UserAuth {
+    // register new user
+    rpc RegisterUser(RegisterUserRequest) returns (RegisterUserResponse) {};
+}

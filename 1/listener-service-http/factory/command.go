@@ -19,7 +19,6 @@ type Command interface {
 // CommandFactory interface
 type CommandFactory interface {
 	CreateCommand([]byte) (Command, error)
-	Close() error
 }
 
 func sendRequest(url string, payload interface{}) ([]byte, error) {
@@ -27,13 +26,16 @@ func sendRequest(url string, payload interface{}) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error marshaling payload: %w", err)
 	}
+
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, fmt.Errorf("error sending request: %w", err)
 	}
 	defer resp.Body.Close()
+
 	if resp.StatusCode != http.StatusAccepted {
 		return nil, fmt.Errorf("request failed with status code: %d", resp.StatusCode)
 	}
+
 	return io.ReadAll(resp.Body)
 }

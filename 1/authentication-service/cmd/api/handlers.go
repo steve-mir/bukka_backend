@@ -32,6 +32,7 @@ type AuthResponse struct {
 }
 
 func (app *Config) Authenticate(w http.ResponseWriter, r *http.Request) {
+	log.Println("Calling auth service")
 	var payload AuthPayload
 
 	err := json.NewDecoder(r.Body).Decode(&payload)
@@ -41,7 +42,7 @@ func (app *Config) Authenticate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var response AuthResponse
-	log.Println("Action", payload.Action)
+	log.Println("Action inside auth service", payload.Action)
 	switch payload.Action {
 	case AuthActionLogin:
 		response = app.handleLogin(payload)

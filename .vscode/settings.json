@@ -1,7 +1,9 @@
 {
     "cSpell.words": [
+        "amqp",
         "Bukka",
         "errgroup",
+        "gapi",
         "Msgf",
         "pgtype",
         "pgxpool",
