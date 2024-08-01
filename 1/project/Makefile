@@ -6,8 +6,8 @@ MAIL_BINARY=mailerApp
 LISTENER_BINARY=listenerApp
 MENU_BINARY=menuApp
 
-# SERVICES = authentication-service menu-service broker-service logger-service mail-service listener-service
-SERVICES = authentication-service
+# SERVICES = broker-service logger-service mail-service listener-service
+SERVICES = authentication-service menu-service listener-service
 
 ## up: starts all containers in the background without forcing build
 up:

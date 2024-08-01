@@ -145,6 +145,7 @@ func connect() (*amqp.Connection, error) {
 }
 
 func newGRPCServer() *grpc.Server {
+
 	return grpc.NewServer()
 }
 

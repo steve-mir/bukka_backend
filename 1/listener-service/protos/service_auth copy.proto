@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package pb;
+
+import "rpc_menu.proto";
+
+
+option go_package = "github.com/steve-mir/bukka_backend/menu/pb";
+
+
+service Menu {
+    // register new user
+    rpc GetMenu(GetMenuRequest) returns (GetMenuResponse) {};
+}

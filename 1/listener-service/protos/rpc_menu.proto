@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package pb;
+
+
+option go_package = "github.com/steve-mir/bukka_backend/menu/pb";
+
+message GetMenuRequest {}
+
+message GetMenuResponse {
+    string menu_id = 1;
+}

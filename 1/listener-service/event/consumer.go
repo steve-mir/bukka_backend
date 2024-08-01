@@ -1,6 +1,7 @@
 package event
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 
@@ -96,6 +97,7 @@ func (c *Consumer) processMessage(d amqp.Delivery, factory factory.CommandFactor
 	command, err := factory.CreateCommand(d.Body)
 	if err != nil {
 		log.Printf("Error creating command: %v", err)
+		c.sendErrorResponse(err, d.ReplyTo, d.CorrelationId)
 		c.channel.Nack(d.DeliveryTag, false, false)
 		return
 	}
@@ -103,6 +105,7 @@ func (c *Consumer) processMessage(d amqp.Delivery, factory factory.CommandFactor
 	response, err := command.Execute()
 	if err != nil {
 		log.Printf("Error executing command: %v", err)
+		c.sendErrorResponse(err, d.ReplyTo, d.CorrelationId)
 		c.channel.Nack(d.DeliveryTag, false, false)
 		return
 	}
@@ -128,4 +131,17 @@ func sendResponse(response []byte, replyTo, correlationId string, ch *amqp.Chann
 			Body:          response,
 		},
 	)
+}
+
+func (c *Consumer) sendErrorResponse(err error, replyTo, correlationId string) {
+	errorResponse := struct {
+		Error string `json:"error"`
+	}{
+		Error: err.Error(),
+	}
+
+	responseJSON, _ := json.Marshal(errorResponse)
+	if sendErr := sendResponse(responseJSON, replyTo, correlationId, c.channel); sendErr != nil {
+		log.Printf("Error sending error response: %v", sendErr)
+	}
 }
