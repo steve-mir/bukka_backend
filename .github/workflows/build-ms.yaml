@@ -1,4 +1,4 @@
-name: Docker build for ms images
+name: Docker build
 
 on:
   schedule:
@@ -53,8 +53,7 @@ jobs:
 
       # Define an array of services to build and push
       - name: Set up services array
-        id: vars
-        run: echo "SERVICES=authentication-service menu-service listener-service" >> $GITHUB_ENV
+        run: echo "authentication-service menu-service listener-service" >> $GITHUB_ENV
 
       - name: Build and push Docker images for each service
         id: build-and-push
@@ -62,10 +61,10 @@ jobs:
           for service in ${{ env.SERVICES }}; do
             echo "Building and pushing Docker image for $service"
             docker buildx build --push \
-              --context ./1/$service \
-              --file ./1/$service/$service.dockerfile \
+              --file ./../$service/$service.dockerfile \
               --tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-$service:latest \
-              --tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-$service:${{ steps.meta.outputs.version }}
+              --tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-$service:${{ steps.meta.outputs.version }} \
+              ./../$service
           done
 
       - name: Sign the published Docker images
