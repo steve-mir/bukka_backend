@@ -1,10 +1,11 @@
 name: Build and Push Microservices
+
 on:
   schedule:
     - cron: '22 19 * * *'
   push:
     branches: [ "dev" ]
-    tags: [ 'v*.*.*' ]
+    tags: [ 'v..' ]
   pull_request:
     branches: [ "main" ]
 
@@ -19,6 +20,7 @@ jobs:
       contents: read
       packages: write
       id-token: write
+
     strategy:
       matrix:
         service:
@@ -26,6 +28,7 @@ jobs:
           - authentication-service
           - menu-service
           - listener-service
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -53,9 +56,9 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service }}
           tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=semver,pattern={{version}}
             type=sha
+            type=ref,event=branch
+            type=raw,value=latest
 
       - name: Build and push Docker image
         id: build-and-push
