@@ -1,7 +1,15 @@
+# FROM alpine:latest
+
+# RUN mkdir /app
+
+# COPY listenerApp /app
+
+# CMD [ "/app/listenerApp"]
+
 FROM alpine:latest
 
 RUN mkdir /app
 
-COPY listenerApp /app
+COPY . /app
 
-CMD [ "/app/listenerApp"]
+CMD [ "/app/listener-service" ]

@@ -1,7 +1,15 @@
+# FROM alpine:latest
+
+# RUN mkdir /app
+
+# COPY brokerApp /app
+
+# CMD [ "/app/brokerApp"]
+
 FROM alpine:latest
 
 RUN mkdir /app
 
-COPY brokerApp /app
+COPY . /app
 
-CMD [ "/app/brokerApp"]
+CMD [ "/app/broker-service" ]
