@@ -40,9 +40,9 @@ jobs:
 
       - name: Build Go binary
         run: |
-          cd ./1/${{ matrix.service }}/cmd/api
-          go build -o ${{ matrix.service }}App .
-          mv ${{ matrix.service }}App ../../
+          cd ./1/${{ matrix.service }}
+          go build -o ${{ matrix.service }}App ./cmd/api
+          mv ${{ matrix.service }}App ../
 
       - name: Install cosign
         if: github.event_name != 'pull_request'
