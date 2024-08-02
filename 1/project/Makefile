@@ -1,10 +1,10 @@
 FRONT_END_BINARY=frontApp
-BROKER_BINARY=brokerApp
-AUTH_BINARY=authApp
-LOGGER_BINARY=loggerServiceApp
-MAIL_BINARY=mailerApp
-LISTENER_BINARY=listenerApp
-MENU_BINARY=menuApp
+BROKER_BINARY=broker-service #brokerApp
+AUTH_BINARY=authentication-service #authApp
+LOGGER_BINARY=logger-service #loggerServiceApp
+MAIL_BINARY=mail-service #mailerApp
+LISTENER_BINARY=listener-service # listenerApp
+MENU_BINARY= menu-service #menuApp
 
 # SERVICES = broker-service logger-service mail-service listener-service
 SERVICES = authentication-service menu-service listener-service
