@@ -17,35 +17,29 @@
 
 # ***
 
-# Use a minimal base image like Alpine with Go pre-installed
 FROM golang:1.22.3-alpine AS builder
 
-# Set the Current Working Directory inside the container
-WORKDIR /app
+ # Set the working directory inside the container
+ WORKDIR /app
 
-# Copy go.mod and go.sum files to cache dependencies
-COPY go.mod go.sum ./
+ # Copy only necessary files to the container's workspace
+ COPY go.mod go.sum ./
+ RUN go mod download
 
-# Download all dependencies. Dependencies will be cached if go.mod and go.sum are not changed
-RUN go mod download
+ # Copy the rest of the source code
+ COPY . .
 
-# Copy the source code into the container
-COPY . .
+ # Run ls command to list files in the /app directory
+ RUN ls -l /app
 
-# Build the Go app
-RUN go build -o authentication-service ./cmd/authentication-service
+ # Build the application
+ RUN CGO_ENABLED=0 go build -o authentication-service ./cmd/api
 
-# Start a new stage from scratch
-FROM alpine:latest
+ # Use a lightweight base image for the final runtime image
+ FROM alpine:latest
 
-# Set the Current Working Directory inside the container
-WORKDIR /app
+ # Copy the binary from the builder stage to the final image
+ COPY --from=builder /app/authentication-service /app/authentication-service
 
-# Copy the Pre-built binary file from the builder stage
-COPY --from=builder /app/authentication-service .
-
-# Provide executable permissions
-RUN chmod +x ./authentication-service
-
-# Command to run the executable
-CMD ["./authentication-service"]
+ # Run the executable
+ CMD ["/app/authentication-service"] 
