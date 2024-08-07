@@ -17,7 +17,7 @@ const (
 	AuthPhone             AuthMethod = "phone"
 	AuthGoogle            AuthMethod = "google"
 	AuthApple             AuthMethod = "apple"
-	DefaultNotBeforeDelay            = 2 * time.Second
+	DefaultNotBeforeDelay            = 15 * time.Minute
 )
 
 var (
@@ -71,7 +71,7 @@ func NewPayload(payload PayloadData, duration time.Duration) (*Payload, error) {
 
 func (payload *Payload) ValidateExpiry() error {
 	currentTime := time.Now()
-	if currentTime.Before(payload.NotBefore) {
+	if payload.TokenType == RefreshToken && currentTime.Before(payload.NotBefore) {
 		return ErrTokenNotYetValid
 	}
 

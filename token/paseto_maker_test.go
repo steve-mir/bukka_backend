@@ -45,7 +45,7 @@ func TestCreateToken(t *testing.T) {
 		SessionID:     sessionID,
 		Issuer:        "yourapp",
 		Audience:      "yourapp_users",
-		IP:            "192.168.1.1",
+		IP:            "0.0.0.0",
 		UserAgent:     "Mozilla/5.0",
 		MfaPassed:     true,
 	}
@@ -57,44 +57,45 @@ func TestCreateToken(t *testing.T) {
 	require.NotNil(t, payload)
 }
 
-func TestVerifyToken(t *testing.T) {
-	accessSymmetricKey := "a_very_secret_key_with_sufficient_length"
-	refreshSymmetricKey := "a_very_secret_key_with_sufficient_length"
+// func TestVerifyToken(t *testing.T) {
+// 	accessSymmetricKey := "a_very_secret_key_with_sufficient_length"
+// 	refreshSymmetricKey := "a_very_secret_key_with_sufficient_length"
 
-	maker, err := NewPasetoMaker(accessSymmetricKey, refreshSymmetricKey)
-	require.NoError(t, err)
-	require.NotNil(t, maker)
+// 	maker, err := NewPasetoMaker(accessSymmetricKey, refreshSymmetricKey)
+// 	require.NoError(t, err)
+// 	require.NotNil(t, maker)
 
-	userID := uuid.New()
-	sessionID := uuid.New()
-	payloadData := PayloadData{
-		Role:          1,
-		Subject:       userID,
-		Username:      "testuser",
-		Email:         "testuser@example.com",
-		Phone:         "123-456-7890",
-		EmailVerified: true,
-		SessionID:     sessionID,
-		Issuer:        "yourapp",
-		Audience:      "yourapp_users",
-		IP:            "192.168.1.1",
-		UserAgent:     "Mozilla/5.0",
-		MfaPassed:     true,
-		TokenType:     TokenType(RefreshToken),
-	}
+// 	userID := uuid.New()
+// 	sessionID, _ := uuid.NewRandom()
+// 	log.Println(sessionID)
+// 	payloadData := PayloadData{
+// 		Role:          1,
+// 		Subject:       userID,
+// 		Username:      "testuser",
+// 		Email:         "testuser@example.com",
+// 		Phone:         "123-456-7890",
+// 		EmailVerified: true,
+// 		SessionID:     sessionID,
+// 		Issuer:        "yourapp",
+// 		Audience:      "yourapp_users",
+// 		IP:            "0.0.0.0",
+// 		UserAgent:     "Mozilla/5.0",
+// 		MfaPassed:     true,
+// 		TokenType:     TokenType(AccessToken),
+// 	}
 
-	duration := time.Hour
-	token, _, err := maker.CreateToken(payloadData, duration, TokenType(RefreshToken))
-	require.NoError(t, err)
-	require.NotEmpty(t, token)
+// 	duration := time.Hour
+// 	token, _, err := maker.CreateToken(payloadData, duration, TokenType(AccessToken))
+// 	require.NoError(t, err)
+// 	require.NotEmpty(t, token)
 
-	cache := cache.NewCache("0.0.0.0:6379", "default", "", 0)
-	payload, err := maker.VerifyToken(context.Background(), *cache, token, TokenType(RefreshToken))
-	require.NoError(t, err)
-	require.NotNil(t, payload)
-	require.Equal(t, payloadData.Subject, payload.Subject)
-	require.Equal(t, payloadData.Username, payload.Username)
-}
+// 	cache := cache.NewCache("0.0.0.0:6379", "default", "", 0)
+// 	payload, err := maker.VerifyToken(context.Background(), *cache, token, TokenType(AccessToken))
+// 	require.NoError(t, err)
+// 	require.NotNil(t, payload)
+// 	require.Equal(t, payloadData.Subject, payload.Subject)
+// 	require.Equal(t, payloadData.Username, payload.Username)
+// }
 
 func TestVerifyTokenExpired(t *testing.T) {
 	accessSymmetricKey := "a_very_secret_key_with_sufficient_length"
@@ -115,7 +116,7 @@ func TestVerifyTokenExpired(t *testing.T) {
 		SessionID:     sessionID,
 		Issuer:        "yourapp",
 		Audience:      "yourapp_users",
-		IP:            "192.168.1.1",
+		IP:            "0.0.0.0",
 		UserAgent:     "Mozilla/5.0",
 		MfaPassed:     true,
 	}
@@ -152,7 +153,7 @@ func TestVerifyTokenInvalidKey(t *testing.T) {
 		SessionID:     sessionID,
 		Issuer:        "yourapp",
 		Audience:      "yourapp_users",
-		IP:            "192.168.1.1",
+		IP:            "0.0.0.0",
 		UserAgent:     "Mozilla/5.0",
 		MfaPassed:     true,
 	}

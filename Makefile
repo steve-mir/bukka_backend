@@ -15,7 +15,7 @@ start_redis:
 	docker start redis
 
 postgres:
-	docker run --name postgis -p 5434:5432 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=toor -d postgis:16-3.4-alpine
+	docker run --name postgis -p 5434:5432 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=toor -d postgis/postgis:16-3.4-alpine
 
 redis:
 	docker run --name redis -p 6379:6379 -d redis:7.0-alpine

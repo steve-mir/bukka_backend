@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/o1egl/paseto"
@@ -97,6 +98,8 @@ func (maker *PasetoMaker) VerifyToken(ctx context.Context, cache cache.Cache, to
 	if payload.TokenType == AccessToken {
 		sessionID, err := cache.GetKey(ctx, token)
 		if err != nil || sessionID == "" {
+			log.Println("Cache error", err)
+			log.Println("SESSION ID", sessionID)
 			return nil, ErrInvalidToken
 		}
 	}

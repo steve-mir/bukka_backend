@@ -79,6 +79,11 @@ jobs:
             GOOGLE_OAUTH_CLIENT_ID=${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
             GOOGLE_OAUTH_CLIENT_SECRET=${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
             GOOGLE_REDIRECT=${{ secrets.GOOGLE_REDIRECT }}
+            SMTP_NAME=${{ secrets.SMTP_NAME }}
+            SMTP_ADDR=${{ secrets.SMTP_ADDR }}
+            SMTP_HOST=${{ secrets.SMTP_HOST }}
+            SMTP_USERNAME=${{ secrets.SMTP_USERNAME }}
+            SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}
 
 
       # If required, use the Cloud Run url output in later steps
